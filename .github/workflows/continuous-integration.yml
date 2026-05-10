@@ -1,0 +1,53 @@
+name: CI
+on:
+  push:
+    branches: [develop,release-*]
+
+jobs:
+  devops:
+    name: Tests & CodeQL & SonarCloud
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+
+    steps:
+      - name: ⬇️ Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: ☕ Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      - name: 🏷️ Extract artifact from pom
+        run:
+          echo "ARTIFACT=$(mvn help:evaluate -Dexpression=project.artifactId -q -DforceStdout)" >> $GITHUB_ENV
+      
+
+      - name: 🛡️ Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: java
+          queries: security-extended
+
+      - name: ✅ Run Unit & Integration Test & Functional Test
+        run: mvn -B verify
+
+      - name: 🔍 CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:java"
+
+      - name: 📊 Sonar Analysis
+        run: >
+          mvn -B sonar:sonar 
+          -Dsonar.projectKey=LinkalApp_linkal-srv
+          -Dsonar.organization=linkalapp 
+          -Dsonar.host.url=https://sonarcloud.io 
+          -Dsonar.token=${{ secrets.SONAR_TOKEN }}
