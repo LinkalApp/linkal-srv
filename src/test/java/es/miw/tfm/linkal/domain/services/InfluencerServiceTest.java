@@ -70,6 +70,33 @@ public class InfluencerServiceTest {
         verify(influencerPersistence).create(influencer);
     }
 
+    // -----------------------------------------------------------------------
+    //  readMe
+    // ------------------------------------------------------------------------
+
+    @Test
+    void readMe_shouldReturnInfluencerWithNullPassword() {
+        Influencer influencer = buildInfluencer("hashedPass");
+
+        when(influencerPersistence.readMe("influencer@test.com")).thenReturn(influencer);
+
+        Influencer result = influencerService.readMe("influencer@test.com");
+
+        assertNull(result.getPassword());
+        assertEquals("influencer@test.com", result.getEmail());
+    }
+
+    @Test
+    void readMe_shouldDelegateToPersistence() {
+        Influencer influencer = buildInfluencer("hashedPass");
+
+        when(influencerPersistence.readMe("influencer@test.com")).thenReturn(influencer);
+
+        influencerService.readMe("influencer@test.com");
+
+        verify(influencerPersistence).readMe("influencer@test.com");
+    }
+
     // -------------------------------------------------------------------------
     //  helpers
     // -------------------------------------------------------------------------
