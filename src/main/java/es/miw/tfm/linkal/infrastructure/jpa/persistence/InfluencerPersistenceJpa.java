@@ -1,6 +1,7 @@
 package es.miw.tfm.linkal.infrastructure.jpa.persistence;
 
 import es.miw.tfm.linkal.domain.exceptions.ConflictException;
+import es.miw.tfm.linkal.domain.exceptions.NotFoundException;
 import es.miw.tfm.linkal.domain.model.Influencer;
 import es.miw.tfm.linkal.domain.persistence.InfluencerPersistence;
 import es.miw.tfm.linkal.infrastructure.jpa.entities.InfluencerEntity;
@@ -21,5 +22,12 @@ public class InfluencerPersistenceJpa implements InfluencerPersistence {
             throw new ConflictException("Email already registered: " + influencer.getEmail());
         }
         return influencerRepository.save(new InfluencerEntity(influencer)).toInfluencer();
+    }
+
+    @Override
+    public Influencer readMe(String email) {
+        return influencerRepository.findByEmail(email)
+                .map(InfluencerEntity::toInfluencer)
+                .orElseThrow(() -> new NotFoundException("Influencer not found: " + email));
     }
 }

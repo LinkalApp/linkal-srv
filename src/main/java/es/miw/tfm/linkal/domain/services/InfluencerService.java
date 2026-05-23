@@ -16,4 +16,10 @@ public class InfluencerService {
         influencer.setPassword(passwordEncoder.encode(influencer.getPassword()));
         return this.influencerPersistence.create(influencer);
     }
+
+    public Influencer readMe(String email) {
+        Influencer influencer = influencerPersistence.readMe(email);
+        influencer.setPassword(null);
+        return influencer;
+    }
 }

@@ -2,6 +2,8 @@ package es.miw.tfm.linkal.infrastructure.resources.httperrors;
 
 import es.miw.tfm.linkal.domain.exceptions.*;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authorization.AuthorizationDeniedException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -16,10 +18,10 @@ public class ApiExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorMessage handleValidationException(MethodArgumentNotValidException ex) {
         String detail = ex.getBindingResult().getFieldErrors().stream()
-                .map(e -> e.getField() + ": " + e.getDefaultMessage())
+                .map(FieldError::getDefaultMessage)
                 .reduce((a, b) -> a + ", " + b)
                 .orElse(ex.getMessage());
-        return new ErrorMessage(ex, HttpStatus.BAD_REQUEST.value());
+        return new ErrorMessage(ex.getClass().getSimpleName(), detail, HttpStatus.BAD_REQUEST.value());
     }
     @ResponseBody
     @ExceptionHandler(NotFoundException.class)
@@ -46,6 +48,13 @@ public class ApiExceptionHandler {
     @ExceptionHandler(ForbiddenException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public ErrorMessage handleForbiddenException(ForbiddenException ex) {
+        return new ErrorMessage(ex, HttpStatus.FORBIDDEN.value());
+    }
+
+    @ResponseBody
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ErrorMessage handleAuthorizationDeniedException(AuthorizationDeniedException ex) {
         return new ErrorMessage(ex, HttpStatus.FORBIDDEN.value());
     }
 
