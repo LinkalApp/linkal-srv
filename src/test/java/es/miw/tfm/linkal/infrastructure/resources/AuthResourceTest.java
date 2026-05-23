@@ -13,7 +13,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -142,6 +142,175 @@ class AuthResourceTest {
                                 {
                                   "email": "user@test.com",
                                   "password": "wrongPass"
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    // --------------------------------------------------------------------------
+    //  POST /api/auth/forgot-password
+    // ---------------------------------------------------------------------------
+
+    @Test
+    @WithMockUser
+    void forgotPassword_shouldReturn204OnSuccess() throws Exception {
+        doNothing().when(authService).sendResetCode("user@test.com");
+
+        mockMvc.perform(post("/api/auth/forgot-password")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                { "email": "user@test.com" }
+                                """))
+                .andExpect(status().isNoContent());
+
+        verify(authService).sendResetCode("user@test.com");
+    }
+
+    @Test
+    @WithMockUser
+    void forgotPassword_shouldReturn400WhenEmailIsBlank() throws Exception {
+        mockMvc.perform(post("/api/auth/forgot-password")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                { "email": "" }
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser
+    void forgotPassword_shouldReturn400WhenEmailIsInvalid() throws Exception {
+        mockMvc.perform(post("/api/auth/forgot-password")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                { "email": "not-an-email" }
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser
+    void forgotPassword_shouldReturn404WhenUserNotFound() throws Exception {
+        doThrow(new NotFoundException("User not found: unknown@test.com"))
+                .when(authService).sendResetCode("unknown@test.com");
+
+        mockMvc.perform(post("/api/auth/forgot-password")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                { "email": "unknown@test.com" }
+                                """))
+                .andExpect(status().isNotFound());
+    }
+
+    // -------------------------------------------------------------------------
+    //  POST /api/auth/reset-password
+    //---------------------------------------------------------------------------
+
+    @Test
+    @WithMockUser
+    void resetPassword_shouldReturn204OnSuccess() throws Exception {
+        doNothing().when(authService).resetPassword("user@test.com", "123456", "newPass1");
+
+        mockMvc.perform(post("/api/auth/reset-password")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "user@test.com",
+                                  "code": "123456",
+                                  "newPassword": "newPass1"
+                                }
+                                """))
+                .andExpect(status().isNoContent());
+
+        verify(authService).resetPassword("user@test.com", "123456", "newPass1");
+    }
+
+    @Test
+    @WithMockUser
+    void resetPassword_shouldReturn400WhenEmailIsBlank() throws Exception {
+        mockMvc.perform(post("/api/auth/reset-password")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "",
+                                  "code": "123456",
+                                  "newPassword": "newPass1"
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser
+    void resetPassword_shouldReturn400WhenCodeIsBlank() throws Exception {
+        mockMvc.perform(post("/api/auth/reset-password")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "user@test.com",
+                                  "code": "",
+                                  "newPassword": "newPass1"
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser
+    void resetPassword_shouldReturn400WhenNewPasswordIsBlank() throws Exception {
+        mockMvc.perform(post("/api/auth/reset-password")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "user@test.com",
+                                  "code": "123456",
+                                  "newPassword": ""
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser
+    void resetPassword_shouldReturn400WhenCodeIsWrong() throws Exception {
+        doThrow(new BadRequestException("Código incorrecto"))
+                .when(authService).resetPassword("user@test.com", "000000", "newPass1");
+
+        mockMvc.perform(post("/api/auth/reset-password")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "user@test.com",
+                                  "code": "000000",
+                                  "newPassword": "newPass1"
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser
+    void resetPassword_shouldReturn400WhenTokenExpired() throws Exception {
+        doThrow(new BadRequestException("El código ha expirado"))
+                .when(authService).resetPassword("user@test.com", "123456", "newPass1");
+
+        mockMvc.perform(post("/api/auth/reset-password")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "user@test.com",
+                                  "code": "123456",
+                                  "newPassword": "newPass1"
                                 }
                                 """))
                 .andExpect(status().isBadRequest());
