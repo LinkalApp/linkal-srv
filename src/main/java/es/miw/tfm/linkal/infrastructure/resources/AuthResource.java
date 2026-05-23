@@ -22,8 +22,28 @@ public class AuthResource {
         return ResponseEntity.ok(authService.login(request.email(), request.password()));
     }
 
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.sendResetCode(request.email());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request.email(), request.code(), request.newPassword());
+        return ResponseEntity.noContent().build();
+    }
+
     public record LoginRequest(
             @Email @NotBlank String email,
             @NotBlank String password) {}
+
+    public record ForgotPasswordRequest(
+            @Email @NotBlank String email) {}
+
+    public record ResetPasswordRequest(
+            @Email @NotBlank String email,
+            @NotBlank String code,
+            @NotBlank String newPassword) {}
 }
 
