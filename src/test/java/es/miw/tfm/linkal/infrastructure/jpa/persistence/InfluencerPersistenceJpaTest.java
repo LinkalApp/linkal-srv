@@ -1,6 +1,7 @@
 package es.miw.tfm.linkal.infrastructure.jpa.persistence;
 
 import es.miw.tfm.linkal.domain.exceptions.ConflictException;
+import es.miw.tfm.linkal.domain.exceptions.NotFoundException;
 import es.miw.tfm.linkal.domain.model.Influencer;
 import es.miw.tfm.linkal.infrastructure.jpa.entities.InfluencerEntity;
 import es.miw.tfm.linkal.infrastructure.jpa.repositories.InfluencerRepository;
@@ -12,6 +13,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -73,6 +75,30 @@ class InfluencerPersistenceJpaTest {
         var inOrder = inOrder(userRepository, influencerRepository);
         inOrder.verify(userRepository).existsByEmail("irene@test.com");
         inOrder.verify(influencerRepository).save(any());
+    }
+
+    // ------------------------------------------------------------------------
+    //  readMe
+    // -------------------------------------------------------------------------
+
+    @Test
+    void readMe_shouldReturnInfluencerWhenEmailFound() {
+        InfluencerEntity entity = buildInfluencerEntity(buildInfluencer());
+
+        when(influencerRepository.findByEmail("irene@test.com")).thenReturn(Optional.of(entity));
+
+        Influencer result = influencerPersistenceJpa.readMe("irene@test.com");
+
+        assertEquals("irene@test.com", result.getEmail());
+        assertEquals("ArtistIrene", result.getArtisticName());
+    }
+
+    @Test
+    void readMe_shouldThrowNotFoundExceptionWhenEmailNotFound() {
+        when(influencerRepository.findByEmail("unknown@test.com")).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class,
+                () -> influencerPersistenceJpa.readMe("unknown@test.com"));
     }
 
     // -------------------------------------------------------------------------
