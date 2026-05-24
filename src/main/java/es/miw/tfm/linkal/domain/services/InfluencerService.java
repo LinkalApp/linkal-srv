@@ -32,4 +32,8 @@ public class InfluencerService {
         updated.setAverageRating(evaluationPersistence.averageScoreByInfluencerId(updated.getId()));
         return updated;
     }
+
+    public void deleteMe(String email) {
+        influencerPersistence.deleteMe(email);
+    }
 }

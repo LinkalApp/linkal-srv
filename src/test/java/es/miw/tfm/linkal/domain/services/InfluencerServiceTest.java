@@ -220,6 +220,28 @@ public class InfluencerServiceTest {
         assertEquals("@new_tiktok", result.getTiktok());
     }
 
+    // ------------------------------------------------------------------------
+    //  deleteMe
+    // -------------------------------------------------------------------------
+
+    @Test
+    void deleteMe_shouldDelegateToPersistence() {
+        doNothing().when(influencerPersistence).deleteMe("influencer@test.com");
+
+        influencerService.deleteMe("influencer@test.com");
+
+        verify(influencerPersistence).deleteMe("influencer@test.com");
+    }
+
+    @Test
+    void deleteMe_shouldPropagateNotFoundExceptionFromPersistence() {
+        doThrow(new es.miw.tfm.linkal.domain.exceptions.NotFoundException("not found"))
+                .when(influencerPersistence).deleteMe("unknown@test.com");
+
+        assertThrows(es.miw.tfm.linkal.domain.exceptions.NotFoundException.class,
+                () -> influencerService.deleteMe("unknown@test.com"));
+    }
+
     // -------------------------------------------------------------------------
     //  helpers
     // -------------------------------------------------------------------------

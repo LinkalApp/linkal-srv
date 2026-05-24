@@ -47,6 +47,13 @@ public class InfluencerPersistenceJpa implements InfluencerPersistence {
         return influencerRepository.save(entity).toInfluencer();
     }
 
+    @Override
+    public void deleteMe(String email) {
+        InfluencerEntity entity = influencerRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("Influencer not found: " + email));
+        influencerRepository.delete(entity);
+    }
+
     private void applyUpdates(InfluencerEntity entity, Influencer influencer) {
         if (influencer.getName()          != null) entity.setName(influencer.getName());
         if (influencer.getPhoneNumber()   != null) entity.setPhoneNumber(influencer.getPhoneNumber());

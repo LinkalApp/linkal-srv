@@ -33,4 +33,13 @@ public class InfluencerResource {
                                                @RequestBody Influencer influencer) {
         return ResponseEntity.ok(influencerService.updateMe(authentication.getName(), influencer));
     }
+
+    @DeleteMapping("/me")
+    @PreAuthorize("hasRole('INFLUENCER')")
+    public ResponseEntity<Void> deleteMe(Authentication authentication) {
+        influencerService.deleteMe(authentication.getName());
+        return ResponseEntity.noContent().build();
+    }
+
+
 }
