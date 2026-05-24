@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
 
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -145,6 +146,79 @@ class InfluencerResourceTest {
 
         mockMvc.perform(get("/api/influencers/me"))
                 .andExpect(status().isNotFound());
+    }
+
+    // ------------------------------------------------------------------------
+    //  PUT /api/influencers/me — solo INFLUENCER autenticado
+    // -------------------------------------------------------------------------
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void updateMe_shouldReturn200WithUpdatedProfile() throws Exception {
+        Influencer updated = buildInfluencer();
+        updated.setArtisticName("NewArtist");
+        updated.setInstagram("@new_ig");
+
+        when(influencerService.updateMe(eq("influencer@test.com"), any())).thenReturn(updated);
+
+        mockMvc.perform(put("/api/influencers/me")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updated)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.artisticName").value("NewArtist"))
+                .andExpect(jsonPath("$.instagram").value("@new_ig"));
+    }
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void updateMe_shouldReturn200AndNotExposePassword() throws Exception {
+        Influencer updated = buildInfluencer();
+        updated.setPassword(null); // el servicio siempre borra la password
+
+        when(influencerService.updateMe(eq("influencer@test.com"), any())).thenReturn(updated);
+
+        mockMvc.perform(put("/api/influencers/me")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(buildInfluencer())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.password").doesNotExist());
+    }
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void updateMe_shouldReturn200WithAverageRating() throws Exception {
+        Influencer updated = buildInfluencer();
+        updated.setAverageRating(4.5);
+
+        when(influencerService.updateMe(eq("influencer@test.com"), any())).thenReturn(updated);
+
+        mockMvc.perform(put("/api/influencers/me")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(buildInfluencer())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.averageRating").value(4.5));
+    }
+
+    @Test
+    void updateMe_shouldReturn401WhenNotAuthenticated() throws Exception {
+        mockMvc.perform(put("/api/influencers/me")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(buildInfluencer())))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void updateMe_shouldReturn403WhenNotInfluencer() throws Exception {
+        mockMvc.perform(put("/api/influencers/me")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(buildInfluencer())))
+                .andExpect(status().isForbidden());
     }
 
     // -------------------------------------------------------------------------

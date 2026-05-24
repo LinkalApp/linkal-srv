@@ -25,4 +25,11 @@ public class InfluencerService {
         influencer.setAverageRating(evaluationPersistence.averageScoreByInfluencerId(influencer.getId()));
         return influencer;
     }
+
+    public Influencer updateMe(String email, Influencer influencer) {
+        Influencer updated = influencerPersistence.updateMe(email, influencer);
+        updated.setPassword(null);
+        updated.setAverageRating(evaluationPersistence.averageScoreByInfluencerId(updated.getId()));
+        return updated;
+    }
 }

@@ -30,4 +30,31 @@ public class InfluencerPersistenceJpa implements InfluencerPersistence {
                 .map(InfluencerEntity::toInfluencer)
                 .orElseThrow(() -> new NotFoundException("Influencer not found: " + email));
     }
+
+    @Override
+    public Influencer updateMe(String email, Influencer influencer) {
+        InfluencerEntity entity = influencerRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("Influencer not found: " + email));
+        applyUpdates(entity, influencer);
+
+        boolean hasInstagram = entity.getInstagram() != null && !entity.getInstagram().isEmpty();
+        boolean hasTiktok    = entity.getTiktok()    != null && !entity.getTiktok().isEmpty();
+        boolean hasYoutube   = entity.getYoutube()   != null && !entity.getYoutube().isEmpty();
+        if (!hasInstagram && !hasTiktok && !hasYoutube) {
+            throw new ConflictException("At least one social network (Instagram, TikTok or YouTube) must be set");
+        }
+
+        return influencerRepository.save(entity).toInfluencer();
+    }
+
+    private void applyUpdates(InfluencerEntity entity, Influencer influencer) {
+        if (influencer.getName()          != null) entity.setName(influencer.getName());
+        if (influencer.getPhoneNumber()   != null) entity.setPhoneNumber(influencer.getPhoneNumber());
+        if (influencer.getDescription()   != null) entity.setDescription(influencer.getDescription());
+        if (influencer.getArtisticName()  != null) entity.setArtisticName(influencer.getArtisticName());
+        if (influencer.getInterests()     != null) entity.setInterests(influencer.getInterests());
+        if (influencer.getInstagram()     != null) entity.setInstagram(influencer.getInstagram());
+        if (influencer.getTiktok()        != null) entity.setTiktok(influencer.getTiktok());
+        if (influencer.getYoutube()       != null) entity.setYoutube(influencer.getYoutube());
+    }
 }
