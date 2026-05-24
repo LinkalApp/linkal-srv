@@ -19,7 +19,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.mockito.ArgumentMatchers.any;
 
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -218,6 +218,42 @@ class InfluencerResourceTest {
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(buildInfluencer())))
+                .andExpect(status().isForbidden());
+    }
+
+    // -------------------------------------------------------------------------
+    //  DELETE /api/influencers/me — solo INFLUENCER autenticado
+    // --------------------------------------------------------------------------
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void deleteMe_shouldReturn204WhenInfluencerAuthenticated() throws Exception {
+        doNothing().when(influencerService).deleteMe("influencer@test.com");
+
+        mockMvc.perform(delete("/api/influencers/me").with(csrf()))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void deleteMe_shouldReturn404WhenInfluencerNotFound() throws Exception {
+        doThrow(new NotFoundException("Influencer not found"))
+                .when(influencerService).deleteMe("influencer@test.com");
+
+        mockMvc.perform(delete("/api/influencers/me").with(csrf()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void deleteMe_shouldReturn401WhenNotAuthenticated() throws Exception {
+        mockMvc.perform(delete("/api/influencers/me").with(csrf()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void deleteMe_shouldReturn403WhenNotInfluencer() throws Exception {
+        mockMvc.perform(delete("/api/influencers/me").with(csrf()))
                 .andExpect(status().isForbidden());
     }
 

@@ -219,6 +219,42 @@ class InfluencerPersistenceJpaTest {
         assertEquals("@new_yt", existing.getYoutube());
     }
 
+    // --------------------------------------------------------------------------
+    //  deleteMe
+    // --------------------------------------------------------------------------
+
+    @Test
+    void deleteMe_shouldDeleteEntityWhenEmailFound() {
+        InfluencerEntity entity = buildInfluencerEntity(buildInfluencer());
+
+        when(influencerRepository.findByEmail("irene@test.com")).thenReturn(Optional.of(entity));
+
+        influencerPersistenceJpa.deleteMe("irene@test.com");
+
+        verify(influencerRepository).delete(entity);
+    }
+
+    @Test
+    void deleteMe_shouldThrowNotFoundExceptionWhenEmailNotFound() {
+        when(influencerRepository.findByEmail("unknown@test.com")).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class,
+                () -> influencerPersistenceJpa.deleteMe("unknown@test.com"));
+        verify(influencerRepository, never()).delete(any());
+    }
+
+    @Test
+    void deleteMe_shouldNotDeleteAnyOtherEntity() {
+        InfluencerEntity entity = buildInfluencerEntity(buildInfluencer());
+
+        when(influencerRepository.findByEmail("irene@test.com")).thenReturn(Optional.of(entity));
+
+        influencerPersistenceJpa.deleteMe("irene@test.com");
+
+        verify(influencerRepository, times(1)).delete(entity);
+        verify(influencerRepository, never()).deleteAll();
+    }
+
     // -------------------------------------------------------------------------
     //  Helpers
     // -------------------------------------------------------------------------
