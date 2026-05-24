@@ -7,4 +7,5 @@ import org.springframework.stereotype.Repository;
 public interface InfluencerPersistence {
     Influencer create(Influencer influencer);
     Influencer readMe(String email);
+    Influencer updateMe (String email, Influencer influencer);
 }
