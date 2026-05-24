@@ -1,6 +1,7 @@
 package es.miw.tfm.linkal.domain.services;
 
 import es.miw.tfm.linkal.domain.model.Influencer;
+import es.miw.tfm.linkal.domain.persistence.EvaluationPersistence;
 import es.miw.tfm.linkal.domain.persistence.InfluencerPersistence;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,6 +20,9 @@ import static org.mockito.Mockito.*;
 public class InfluencerServiceTest {
     @Mock
     private InfluencerPersistence influencerPersistence;
+
+    @Mock
+    private EvaluationPersistence evaluationPersistence;
 
     @Mock
     private PasswordEncoder passwordEncoder;
@@ -95,6 +99,35 @@ public class InfluencerServiceTest {
         influencerService.readMe("influencer@test.com");
 
         verify(influencerPersistence).readMe("influencer@test.com");
+    }
+
+    @Test
+    void readMe_shouldSetAverageRating() {
+        UUID id = UUID.randomUUID();
+        Influencer influencer = buildInfluencer("hashedPass");
+        influencer.setId(id);
+
+        when(influencerPersistence.readMe("influencer@test.com")).thenReturn(influencer);
+        when(evaluationPersistence.averageScoreByInfluencerId(id)).thenReturn(4.2);
+
+        Influencer result = influencerService.readMe("influencer@test.com");
+
+        assertEquals(4.2, result.getAverageRating());
+        verify(evaluationPersistence).averageScoreByInfluencerId(id);
+    }
+
+    @Test
+    void readMe_shouldSetAverageRatingNullWhenNoEvaluations() {
+        UUID id = UUID.randomUUID();
+        Influencer influencer = buildInfluencer("hashedPass");
+        influencer.setId(id);
+
+        when(influencerPersistence.readMe("influencer@test.com")).thenReturn(influencer);
+        when(evaluationPersistence.averageScoreByInfluencerId(id)).thenReturn(null);
+
+        Influencer result = influencerService.readMe("influencer@test.com");
+
+        assertNull(result.getAverageRating());
     }
 
     // -------------------------------------------------------------------------

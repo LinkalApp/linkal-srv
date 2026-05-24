@@ -100,6 +100,31 @@ class InfluencerResourceTest {
     }
 
     @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void readMe_shouldReturnAverageRatingWhenPresent() throws Exception {
+        Influencer influencer = buildInfluencer();
+        influencer.setAverageRating(4.2);
+
+        when(influencerService.readMe("influencer@test.com")).thenReturn(influencer);
+
+        mockMvc.perform(get("/api/influencers/me"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.averageRating").value(4.2));
+    }
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void readMe_shouldNotIncludeAverageRatingWhenNull() throws Exception {
+        Influencer influencer = buildInfluencer();
+
+        when(influencerService.readMe("influencer@test.com")).thenReturn(influencer);
+
+        mockMvc.perform(get("/api/influencers/me"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.averageRating").doesNotExist());
+    }
+
+    @Test
     void readMe_shouldReturn401WhenNotAuthenticated() throws Exception {
         mockMvc.perform(get("/api/influencers/me"))
                 .andExpect(status().isUnauthorized());

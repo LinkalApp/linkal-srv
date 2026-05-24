@@ -21,4 +21,5 @@ public class Influencer extends User {
     private String instagram;
     private String tiktok;
     private String youtube;
+    private Double averageRating;
 }
