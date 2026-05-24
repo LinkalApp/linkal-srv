@@ -131,6 +131,96 @@ public class InfluencerServiceTest {
     }
 
     // -------------------------------------------------------------------------
+    //  updateMe
+    // -------------------------------------------------------------------------
+
+    @Test
+    void updateMe_shouldDelegateToPersistence() {
+        Influencer patch = new Influencer();
+        patch.setInstagram("@new_ig");
+
+        Influencer updated = buildInfluencer("hashed");
+        updated.setId(UUID.randomUUID());
+        updated.setInstagram("@new_ig");
+
+        when(influencerPersistence.updateMe("influencer@test.com", patch)).thenReturn(updated);
+        when(evaluationPersistence.averageScoreByInfluencerId(updated.getId())).thenReturn(null);
+
+        influencerService.updateMe("influencer@test.com", patch);
+
+        verify(influencerPersistence).updateMe("influencer@test.com", patch);
+    }
+
+    @Test
+    void updateMe_shouldReturnUpdatedInfluencerWithNullPassword() {
+        Influencer patch = new Influencer();
+        patch.setArtisticName("NewArtist");
+
+        Influencer updated = buildInfluencer("hashedPass");
+        updated.setId(UUID.randomUUID());
+        updated.setArtisticName("NewArtist");
+
+        when(influencerPersistence.updateMe("influencer@test.com", patch)).thenReturn(updated);
+        when(evaluationPersistence.averageScoreByInfluencerId(updated.getId())).thenReturn(null);
+
+        Influencer result = influencerService.updateMe("influencer@test.com", patch);
+
+        assertNull(result.getPassword());
+        assertEquals("NewArtist", result.getArtisticName());
+    }
+
+    @Test
+    void updateMe_shouldSetAverageRating() {
+        UUID id = UUID.randomUUID();
+        Influencer patch = new Influencer();
+
+        Influencer updated = buildInfluencer("hashed");
+        updated.setId(id);
+
+        when(influencerPersistence.updateMe("influencer@test.com", patch)).thenReturn(updated);
+        when(evaluationPersistence.averageScoreByInfluencerId(id)).thenReturn(3.5);
+
+        Influencer result = influencerService.updateMe("influencer@test.com", patch);
+
+        assertEquals(3.5, result.getAverageRating());
+        verify(evaluationPersistence).averageScoreByInfluencerId(id);
+    }
+
+    @Test
+    void updateMe_shouldSetAverageRatingNullWhenNoEvaluations() {
+        UUID id = UUID.randomUUID();
+        Influencer patch = new Influencer();
+
+        Influencer updated = buildInfluencer("hashed");
+        updated.setId(id);
+
+        when(influencerPersistence.updateMe("influencer@test.com", patch)).thenReturn(updated);
+        when(evaluationPersistence.averageScoreByInfluencerId(id)).thenReturn(null);
+
+        Influencer result = influencerService.updateMe("influencer@test.com", patch);
+
+        assertNull(result.getAverageRating());
+    }
+
+    @Test
+    void updateMe_shouldPreserveSocialNetworkValues() {
+        UUID id = UUID.randomUUID();
+        Influencer patch = new Influencer();
+        patch.setTiktok("@new_tiktok");
+
+        Influencer updated = buildInfluencer("hashed");
+        updated.setId(id);
+        updated.setTiktok("@new_tiktok");
+
+        when(influencerPersistence.updateMe("influencer@test.com", patch)).thenReturn(updated);
+        when(evaluationPersistence.averageScoreByInfluencerId(id)).thenReturn(null);
+
+        Influencer result = influencerService.updateMe("influencer@test.com", patch);
+
+        assertEquals("@new_tiktok", result.getTiktok());
+    }
+
+    // -------------------------------------------------------------------------
     //  helpers
     // -------------------------------------------------------------------------
 

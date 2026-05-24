@@ -13,6 +13,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -99,6 +100,123 @@ class InfluencerPersistenceJpaTest {
 
         assertThrows(NotFoundException.class,
                 () -> influencerPersistenceJpa.readMe("unknown@test.com"));
+    }
+
+    // ------------------------------------------------------------------------
+    //  updateMe
+    // -------------------------------------------------------------------------
+
+    @Test
+    void updateMe_shouldUpdateFieldsAndSave() {
+        InfluencerEntity existing = buildInfluencerEntity(buildInfluencer());
+
+        Influencer patch = new Influencer();
+        patch.setArtisticName("NewArtist");
+        patch.setInstagram("@new_ig");
+
+        when(influencerRepository.findByEmail("irene@test.com")).thenReturn(Optional.of(existing));
+        when(influencerRepository.save(existing)).thenReturn(existing);
+
+        Influencer result = influencerPersistenceJpa.updateMe("irene@test.com", patch);
+
+        assertEquals("NewArtist", existing.getArtisticName());
+        assertEquals("@new_ig", existing.getInstagram());
+        verify(influencerRepository).save(existing);
+    }
+
+    @Test
+    void updateMe_shouldThrowNotFoundExceptionWhenEmailNotFound() {
+        when(influencerRepository.findByEmail("unknown@test.com")).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class,
+                () -> influencerPersistenceJpa.updateMe("unknown@test.com", new Influencer()));
+        verify(influencerRepository, never()).save(any());
+    }
+
+    @Test
+    void updateMe_shouldNotOverwriteFieldsWhenPatchValueIsNull() {
+        InfluencerEntity existing = buildInfluencerEntity(buildInfluencer());
+
+        Influencer patch = new Influencer(); // todos null
+
+        when(influencerRepository.findByEmail("irene@test.com")).thenReturn(Optional.of(existing));
+        when(influencerRepository.save(existing)).thenReturn(existing);
+
+        influencerPersistenceJpa.updateMe("irene@test.com", patch);
+
+        assertEquals("ArtistIrene", existing.getArtisticName());
+        assertEquals("@irene_ig",   existing.getInstagram());
+        assertEquals("@irene_tt",   existing.getTiktok());
+        assertEquals("@irene_yt",   existing.getYoutube());
+    }
+
+    @Test
+    void updateMe_shouldClearSocialFieldWhenEmptyStringIsSent() {
+        InfluencerEntity existing = buildInfluencerEntity(buildInfluencer());
+        // tiktok tenía valor; el usuario lo borra enviando ""
+        existing.setTiktok("@irene_tt");
+
+        Influencer patch = new Influencer();
+        patch.setTiktok(""); // vaciar
+
+        when(influencerRepository.findByEmail("irene@test.com")).thenReturn(Optional.of(existing));
+        when(influencerRepository.save(existing)).thenReturn(existing);
+
+        influencerPersistenceJpa.updateMe("irene@test.com", patch);
+
+        assertEquals("", existing.getTiktok());
+        verify(influencerRepository).save(existing);
+    }
+
+    @Test
+    void updateMe_shouldThrowConflictExceptionWhenNoSocialNetworkRemains() {
+        InfluencerEntity existing = buildInfluencerEntity(buildInfluencer());
+        // El usuario borra las tres redes enviando cadenas vacías
+        Influencer patch = new Influencer();
+        patch.setInstagram("");
+        patch.setTiktok("");
+        patch.setYoutube("");
+
+        when(influencerRepository.findByEmail("irene@test.com")).thenReturn(Optional.of(existing));
+
+        assertThrows(ConflictException.class,
+                () -> influencerPersistenceJpa.updateMe("irene@test.com", patch));
+        verify(influencerRepository, never()).save(any());
+    }
+
+    @Test
+    void updateMe_shouldUpdateInterestsList() {
+        InfluencerEntity existing = buildInfluencerEntity(buildInfluencer());
+        existing.setInterests(new ArrayList<>(List.of("Moda")));
+
+        Influencer patch = new Influencer();
+        patch.setInterests(List.of("Viajes", "Fitness"));
+
+        when(influencerRepository.findByEmail("irene@test.com")).thenReturn(Optional.of(existing));
+        when(influencerRepository.save(existing)).thenReturn(existing);
+
+        influencerPersistenceJpa.updateMe("irene@test.com", patch);
+
+        assertEquals(List.of("Viajes", "Fitness"), existing.getInterests());
+    }
+
+    @Test
+    void updateMe_shouldUpdateAllSocialNetworksSimultaneously() {
+        InfluencerEntity existing = buildInfluencerEntity(buildInfluencer());
+
+        Influencer patch = new Influencer();
+        patch.setInstagram("@new_ig");
+        patch.setTiktok("@new_tt");
+        patch.setYoutube("@new_yt");
+
+        when(influencerRepository.findByEmail("irene@test.com")).thenReturn(Optional.of(existing));
+        when(influencerRepository.save(existing)).thenReturn(existing);
+
+        influencerPersistenceJpa.updateMe("irene@test.com", patch);
+
+        assertEquals("@new_ig", existing.getInstagram());
+        assertEquals("@new_tt", existing.getTiktok());
+        assertEquals("@new_yt", existing.getYoutube());
     }
 
     // -------------------------------------------------------------------------
