@@ -82,4 +82,44 @@ class EvaluationPersistenceJpaTest {
 
         assertEquals(1.0, result);
     }
+
+    // ------------------------------------------------------------------------
+    //  averageScoreByBusinessId
+    // -------------------------------------------------------------------------
+
+    @Test
+    void averageScoreByBusinessId_shouldReturnAverageFromRepository() {
+        UUID businessId = UUID.randomUUID();
+        when(evaluationRepository.findAverageScoreByValuedUserId(businessId)).thenReturn(4.5);
+
+        Double result = evaluationPersistenceJpa.averageScoreByBusinessId(businessId);
+
+        assertEquals(4.5, result);
+        verify(evaluationRepository).findAverageScoreByValuedUserId(businessId);
+    }
+
+    @Test
+    void averageScoreByBusinessId_shouldReturnNullWhenNoEvaluations() {
+        UUID businessId = UUID.randomUUID();
+        when(evaluationRepository.findAverageScoreByValuedUserId(businessId)).thenReturn(null);
+
+        Double result = evaluationPersistenceJpa.averageScoreByBusinessId(businessId);
+
+        assertNull(result);
+    }
+
+    @Test
+    void averageScoreByBusinessId_shouldDelegateToRepositoryWithCorrectId() {
+        UUID businessId = UUID.randomUUID();
+        UUID otherId    = UUID.randomUUID();
+
+        when(evaluationRepository.findAverageScoreByValuedUserId(businessId)).thenReturn(3.0);
+        when(evaluationRepository.findAverageScoreByValuedUserId(otherId)).thenReturn(2.0);
+
+        Double r1 = evaluationPersistenceJpa.averageScoreByBusinessId(businessId);
+        Double r2 = evaluationPersistenceJpa.averageScoreByBusinessId(otherId);
+
+        assertEquals(3.0, r1);
+        assertEquals(2.0, r2);
+    }
 }

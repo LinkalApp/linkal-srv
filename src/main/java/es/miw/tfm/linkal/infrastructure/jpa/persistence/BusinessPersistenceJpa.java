@@ -1,6 +1,7 @@
 package es.miw.tfm.linkal.infrastructure.jpa.persistence;
 
 import es.miw.tfm.linkal.domain.exceptions.ConflictException;
+import es.miw.tfm.linkal.domain.exceptions.NotFoundException;
 import es.miw.tfm.linkal.domain.model.Business;
 import es.miw.tfm.linkal.domain.persistence.BusinessPersistence;
 import es.miw.tfm.linkal.infrastructure.jpa.entities.BusinessEntity;
@@ -21,5 +22,12 @@ public class BusinessPersistenceJpa implements BusinessPersistence {
             throw new ConflictException("Email already registered: " + business.getEmail());
         }
         return businessRepository.save(new BusinessEntity(business)).toBusiness();
+    }
+
+    @Override
+    public Business readMe(String email) {
+        return businessRepository.findByEmail(email)
+                .map(BusinessEntity::toBusiness)
+                .orElseThrow(() -> new NotFoundException("Business not found: " + email));
     }
 }

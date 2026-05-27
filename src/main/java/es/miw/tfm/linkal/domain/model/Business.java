@@ -18,4 +18,5 @@ public class Business extends User {
     private String province;
     private String website;
     private String category;
+    private Double averageRating;
 }
