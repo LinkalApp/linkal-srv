@@ -2,6 +2,7 @@ package es.miw.tfm.linkal.domain.services;
 
 import es.miw.tfm.linkal.domain.model.Business;
 import es.miw.tfm.linkal.domain.persistence.BusinessPersistence;
+import es.miw.tfm.linkal.domain.persistence.EvaluationPersistence;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -19,6 +20,8 @@ import static org.mockito.Mockito.*;
 public class BusinessServiceTest {
     @Mock
     private BusinessPersistence businessPersistence;
+    @Mock
+    private EvaluationPersistence evaluationPersistence;
 
     @Mock
     private PasswordEncoder passwordEncoder;
@@ -87,6 +90,86 @@ public class BusinessServiceTest {
         assertEquals("https://miempresa.com", business.getWebsite());
         assertEquals("Madrid", business.getProvince());
         assertEquals("Moda", business.getCategory());
+    }
+
+    // ------------------------------------------------------------------------
+    //  readMe
+    // -------------------------------------------------------------------------
+
+    @Test
+    void readMe_shouldReturnBusinessWithNullPassword() {
+        Business business = buildBusiness("hashedPass");
+        business.setId(UUID.randomUUID());
+
+        when(businessPersistence.readMe("business@test.com")).thenReturn(business);
+        when(evaluationPersistence.averageScoreByBusinessId(business.getId())).thenReturn(null);
+
+        Business result = businessService.readMe("business@test.com");
+
+        assertNull(result.getPassword());
+        assertEquals("business@test.com", result.getEmail());
+    }
+
+    @Test
+    void readMe_shouldDelegateToPersistence() {
+        Business business = buildBusiness("hashedPass");
+        business.setId(UUID.randomUUID());
+
+        when(businessPersistence.readMe("business@test.com")).thenReturn(business);
+        when(evaluationPersistence.averageScoreByBusinessId(business.getId())).thenReturn(null);
+
+        businessService.readMe("business@test.com");
+
+        verify(businessPersistence).readMe("business@test.com");
+    }
+
+    @Test
+    void readMe_shouldReturnBusinessFieldsIntact() {
+        Business business = buildBusiness("hashedPass");
+        business.setId(UUID.randomUUID());
+        business.setAddress("Calle Mayor 1");
+        business.setProvince("Madrid");
+        business.setWebsite("https://miempresa.com");
+        business.setCategory("Moda");
+
+        when(businessPersistence.readMe("business@test.com")).thenReturn(business);
+        when(evaluationPersistence.averageScoreByBusinessId(business.getId())).thenReturn(null);
+
+        Business result = businessService.readMe("business@test.com");
+
+        assertEquals("Calle Mayor 1", result.getAddress());
+        assertEquals("Madrid", result.getProvince());
+        assertEquals("https://miempresa.com", result.getWebsite());
+        assertEquals("Moda", result.getCategory());
+    }
+
+    @Test
+    void readMe_shouldSetAverageRating() {
+        UUID id = UUID.randomUUID();
+        Business business = buildBusiness("hashedPass");
+        business.setId(id);
+
+        when(businessPersistence.readMe("business@test.com")).thenReturn(business);
+        when(evaluationPersistence.averageScoreByBusinessId(id)).thenReturn(4.2);
+
+        Business result = businessService.readMe("business@test.com");
+
+        assertEquals(4.2, result.getAverageRating());
+        verify(evaluationPersistence).averageScoreByBusinessId(id);
+    }
+
+    @Test
+    void readMe_shouldSetAverageRatingNullWhenNoEvaluations() {
+        UUID id = UUID.randomUUID();
+        Business business = buildBusiness("hashedPass");
+        business.setId(id);
+
+        when(businessPersistence.readMe("business@test.com")).thenReturn(business);
+        when(evaluationPersistence.averageScoreByBusinessId(id)).thenReturn(null);
+
+        Business result = businessService.readMe("business@test.com");
+
+        assertNull(result.getAverageRating());
     }
 
     // -------------------------------------------------------------------------
