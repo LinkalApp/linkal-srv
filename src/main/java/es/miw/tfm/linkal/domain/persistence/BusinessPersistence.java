@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface BusinessPersistence {
     Business create(Business business);
+    Business readMe(String email);
 }

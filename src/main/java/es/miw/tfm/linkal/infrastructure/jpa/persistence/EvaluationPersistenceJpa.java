@@ -17,4 +17,9 @@ public class EvaluationPersistenceJpa implements EvaluationPersistence {
     public Double averageScoreByInfluencerId(UUID influencerId) {
         return evaluationRepository.findAverageScoreByValuedUserId(influencerId);
     }
+
+    @Override
+    public Double averageScoreByBusinessId(UUID businessId) {
+        return evaluationRepository.findAverageScoreByValuedUserId(businessId);
+    }
 }
