@@ -17,7 +17,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -219,6 +219,44 @@ public class BusinessResourceTest {
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(business)))
+                .andExpect(status().isNotFound());
+    }
+
+    // -------------------------------------------------------------------------
+    //  DELETE /businesses/me — solo BUSINESS autenticado
+    // -------------------------------------------------------------------------
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void deleteMe_shouldReturn204WhenAuthenticated() throws Exception {
+        doNothing().when(businessService).deleteMe("business@test.com");
+
+        mockMvc.perform(delete("/api/businesses/me").with(csrf()))
+                .andExpect(status().isNoContent());
+
+        verify(businessService).deleteMe("business@test.com");
+    }
+
+    @Test
+    void deleteMe_shouldReturn401WhenNotAuthenticated() throws Exception {
+        mockMvc.perform(delete("/api/businesses/me").with(csrf()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void deleteMe_shouldReturn403WhenNotBusiness() throws Exception {
+        mockMvc.perform(delete("/api/businesses/me").with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "unknown@test.com", roles = "BUSINESS")
+    void deleteMe_shouldReturn404WhenBusinessNotFound() throws Exception {
+        doThrow(new NotFoundException("Business not found: unknown@test.com"))
+                .when(businessService).deleteMe("unknown@test.com");
+
+        mockMvc.perform(delete("/api/businesses/me").with(csrf()))
                 .andExpect(status().isNotFound());
     }
 
