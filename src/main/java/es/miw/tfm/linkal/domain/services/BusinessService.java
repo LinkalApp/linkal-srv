@@ -26,4 +26,11 @@ public class BusinessService {
         business.setAverageRating(evaluationPersistence.averageScoreByBusinessId(business.getId()));
         return business;
     }
+
+    public Business updateMe(String email, Business business) {
+        Business updated = businessPersistence.updateMe(email, business);
+        updated.setPassword(null);
+        updated.setAverageRating(evaluationPersistence.averageScoreByBusinessId(updated.getId()));
+        return updated;
+    }
 }
