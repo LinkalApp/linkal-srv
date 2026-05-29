@@ -8,4 +8,5 @@ public interface BusinessPersistence {
     Business create(Business business);
     Business readMe(String email);
     Business updateMe(String email, Business business);
+    void deleteMe(String email);
 }

@@ -5,6 +5,7 @@ import es.miw.tfm.linkal.domain.exceptions.NotFoundException;
 import es.miw.tfm.linkal.domain.model.Business;
 import es.miw.tfm.linkal.domain.persistence.BusinessPersistence;
 import es.miw.tfm.linkal.infrastructure.jpa.entities.BusinessEntity;
+import es.miw.tfm.linkal.infrastructure.jpa.entities.InfluencerEntity;
 import es.miw.tfm.linkal.infrastructure.jpa.repositories.BusinessRepository;
 import es.miw.tfm.linkal.infrastructure.jpa.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,13 @@ public class BusinessPersistenceJpa implements BusinessPersistence {
                 .orElseThrow(() -> new NotFoundException("Business not found: " + email));
         applyUpdates(entity, business);
         return businessRepository.save(entity).toBusiness();
+    }
+
+    @Override
+    public void deleteMe(String email) {
+        BusinessEntity entity = businessRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("Business not found: " + email));
+        businessRepository.delete(entity);
     }
 
     private void applyUpdates(BusinessEntity entity, Business business) {
