@@ -173,6 +173,52 @@ public class BusinessServiceTest {
     }
 
     // -------------------------------------------------------------------------
+    //  updateMe
+    // --------------------------------------------------------------------------
+
+    @Test
+    void updateMe_shouldReturnUpdatedBusinessWithNullPassword() {
+        Business updated = buildBusiness("hashedPass");
+        updated.setId(UUID.randomUUID());
+        updated.setAddress("Calle Nueva 5");
+
+        when(businessPersistence.updateMe("business@test.com", updated)).thenReturn(updated);
+        when(evaluationPersistence.averageScoreByBusinessId(updated.getId())).thenReturn(null);
+
+        Business result = businessService.updateMe("business@test.com", updated);
+
+        assertNull(result.getPassword());
+    }
+
+    @Test
+    void updateMe_shouldSetAverageRating() {
+        UUID id = UUID.randomUUID();
+        Business updated = buildBusiness("hashedPass");
+        updated.setId(id);
+
+        when(businessPersistence.updateMe("business@test.com", updated)).thenReturn(updated);
+        when(evaluationPersistence.averageScoreByBusinessId(id)).thenReturn(4.5);
+
+        Business result = businessService.updateMe("business@test.com", updated);
+
+        assertEquals(4.5, result.getAverageRating());
+        verify(evaluationPersistence).averageScoreByBusinessId(id);
+    }
+
+    @Test
+    void updateMe_shouldDelegateToPersistence() {
+        Business patch = buildBusiness("pass");
+        patch.setId(UUID.randomUUID());
+
+        when(businessPersistence.updateMe("business@test.com", patch)).thenReturn(patch);
+        when(evaluationPersistence.averageScoreByBusinessId(patch.getId())).thenReturn(null);
+
+        businessService.updateMe("business@test.com", patch);
+
+        verify(businessPersistence).updateMe("business@test.com", patch);
+    }
+
+    // -------------------------------------------------------------------------
     //  helpers
     // -------------------------------------------------------------------------
 

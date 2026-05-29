@@ -12,6 +12,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -74,6 +75,94 @@ public class BusinessPersistenceJpaTest {
         var inOrder = inOrder(userRepository, businessRepository);
         inOrder.verify(userRepository).existsByEmail("empresa@test.com");
         inOrder.verify(businessRepository).save(any());
+    }
+
+    // ---------------------------------------------------------------------------
+    //  readMe
+    // ---------------------------------------------------------------------------
+
+    @Test
+    void readMe_shouldReturnBusinessWhenFound() {
+        BusinessEntity entity = buildBusinessEntity(buildBusiness());
+
+        when(businessRepository.findByEmail("empresa@test.com")).thenReturn(Optional.of(entity));
+
+        Business result = businessPersistenceJpa.readMe("empresa@test.com");
+
+        assertEquals("empresa@test.com", result.getEmail());
+        assertEquals("Calle Mayor 1", result.getAddress());
+        assertEquals("Madrid", result.getProvince());
+        assertEquals("https://miempresa.com", result.getWebsite());
+        assertEquals("Moda", result.getCategory());
+    }
+
+    @Test
+    void readMe_shouldThrowNotFoundExceptionWhenEmailNotFound() {
+        when(businessRepository.findByEmail("unknown@test.com")).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class,
+                () -> businessPersistenceJpa.readMe("unknown@test.com"));
+    }
+
+    @Test
+    void readMe_shouldDelegateToRepositoryFindByEmail() {
+        BusinessEntity entity = buildBusinessEntity(buildBusiness());
+
+        when(businessRepository.findByEmail("empresa@test.com")).thenReturn(Optional.of(entity));
+
+        businessPersistenceJpa.readMe("empresa@test.com");
+
+        verify(businessRepository).findByEmail("empresa@test.com");
+    }
+
+    // ------------------------------------------------------------------------
+    //  updateMe
+    // ------------------------------------------------------------------------
+
+    @Test
+    void updateMe_shouldUpdateFieldsAndSave() {
+        BusinessEntity existing = buildBusinessEntity(buildBusiness());
+
+        Business patch = new Business();
+        patch.setName("Nuevo Nombre");
+        patch.setAddress("Avenida Nueva 10");
+        patch.setWebsite("https://nuevaweb.com");
+
+        when(businessRepository.findByEmail("empresa@test.com")).thenReturn(Optional.of(existing));
+        when(businessRepository.save(existing)).thenReturn(existing);
+
+        businessPersistenceJpa.updateMe("empresa@test.com", patch);
+
+        assertEquals("Nuevo Nombre", existing.getName());
+        assertEquals("Avenida Nueva 10", existing.getAddress());
+        assertEquals("https://nuevaweb.com", existing.getWebsite());
+        verify(businessRepository).save(existing);
+    }
+
+    @Test
+    void updateMe_shouldNotOverwriteFieldsWhenPatchValueIsNull() {
+        BusinessEntity existing = buildBusinessEntity(buildBusiness());
+
+        Business patch = new Business(); // todos null
+
+        when(businessRepository.findByEmail("empresa@test.com")).thenReturn(Optional.of(existing));
+        when(businessRepository.save(existing)).thenReturn(existing);
+
+        businessPersistenceJpa.updateMe("empresa@test.com", patch);
+
+        // Campos originales intactos
+        assertEquals("Calle Mayor 1", existing.getAddress());
+        assertEquals("https://miempresa.com", existing.getWebsite());
+        assertEquals("Madrid", existing.getProvince());
+    }
+
+    @Test
+    void updateMe_shouldThrowNotFoundExceptionWhenEmailNotFound() {
+        when(businessRepository.findByEmail("unknown@test.com")).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class,
+                () -> businessPersistenceJpa.updateMe("unknown@test.com", new Business()));
+        verify(businessRepository, never()).save(any());
     }
 
     // -------------------------------------------------------------------------
