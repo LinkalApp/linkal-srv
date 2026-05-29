@@ -16,6 +16,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -159,6 +160,65 @@ public class BusinessResourceTest {
                 .thenThrow(new NotFoundException("Business not found: unknown@test.com"));
 
         mockMvc.perform(get("/api/businesses/me"))
+                .andExpect(status().isNotFound());
+    }
+
+    // -------------------------------------------------------------------------
+    //  PUT /businesses/me — solo BUSINESS autenticado
+    // -------------------------------------------------------------------------
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void updateMe_shouldReturn200WhenAuthenticated() throws Exception {
+        Business business = buildBusiness();
+
+        when(businessService.updateMe(eq("business@test.com"), any())).thenReturn(business);
+
+        mockMvc.perform(put("/api/businesses/me")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(business)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("business@test.com"))
+                .andExpect(jsonPath("$.address").value("Calle Mayor 1"))
+                .andExpect(jsonPath("$.website").value("https://miempresa.com"));
+    }
+
+    @Test
+    void updateMe_shouldReturn401WhenNotAuthenticated() throws Exception {
+        Business business = buildBusiness();
+
+        mockMvc.perform(put("/api/businesses/me")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(business)))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void updateMe_shouldReturn403WhenNotBusiness() throws Exception {
+        Business business = buildBusiness();
+
+        mockMvc.perform(put("/api/businesses/me")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(business)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "unknown@test.com", roles = "BUSINESS")
+    void updateMe_shouldReturn404WhenBusinessNotFound() throws Exception {
+        Business business = buildBusiness();
+
+        when(businessService.updateMe(eq("unknown@test.com"), any()))
+                .thenThrow(new NotFoundException("Business not found: unknown@test.com"));
+
+        mockMvc.perform(put("/api/businesses/me")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(business)))
                 .andExpect(status().isNotFound());
     }
 

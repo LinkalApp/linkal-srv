@@ -1,16 +1,14 @@
 package es.miw.tfm.linkal.infrastructure.resources;
 
 import es.miw.tfm.linkal.domain.model.Business;
+import es.miw.tfm.linkal.domain.model.Influencer;
 import es.miw.tfm.linkal.domain.services.BusinessService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
 
 @Rest
 @RequestMapping("/api/businesses")
@@ -28,5 +26,12 @@ public class BusinessResource {
     @PreAuthorize("hasRole('BUSINESS')")
     public ResponseEntity<Business> readMe(Authentication authentication) {
         return ResponseEntity.ok(businessService.readMe(authentication.getName()));
+    }
+
+    @PutMapping("/me")
+    @PreAuthorize("hasRole('BUSINESS')")
+    public ResponseEntity<Business> updateMe(Authentication authentication,
+                                               @RequestBody Business business) {
+        return ResponseEntity.ok(businessService.updateMe(authentication.getName(), business));
     }
 }

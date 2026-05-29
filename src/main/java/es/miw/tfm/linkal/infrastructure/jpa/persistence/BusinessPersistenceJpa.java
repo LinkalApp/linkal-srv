@@ -30,4 +30,22 @@ public class BusinessPersistenceJpa implements BusinessPersistence {
                 .map(BusinessEntity::toBusiness)
                 .orElseThrow(() -> new NotFoundException("Business not found: " + email));
     }
+
+    @Override
+    public Business updateMe(String email, Business business) {
+        BusinessEntity entity = businessRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("Business not found: " + email));
+        applyUpdates(entity, business);
+        return businessRepository.save(entity).toBusiness();
+    }
+
+    private void applyUpdates(BusinessEntity entity, Business business) {
+        if (business.getName() != null) entity.setName(business.getName());
+        if (business.getPhoneNumber() != null) entity.setPhoneNumber(business.getPhoneNumber());
+        if (business.getDescription() != null) entity.setDescription(business.getDescription());
+        if (business.getAddress() != null) entity.setAddress(business.getAddress());
+        if (business.getProvince() != null) entity.setProvince(business.getProvince());
+        if (business.getWebsite() != null) entity.setWebsite(business.getWebsite());
+        if (business.getCategory() != null) entity.setCategory(business.getCategory());
+    }
 }
