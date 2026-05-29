@@ -218,6 +218,29 @@ public class BusinessServiceTest {
         verify(businessPersistence).updateMe("business@test.com", patch);
     }
 
+    // --------------------------------------------------------------------------
+    //  deleteMe
+    // --------------------------------------------------------------------------
+
+    @Test
+    void deleteMe_shouldDelegateToPersistence() {
+        doNothing().when(businessPersistence).deleteMe("business@test.com");
+
+        businessService.deleteMe("business@test.com");
+
+        verify(businessPersistence).deleteMe("business@test.com");
+    }
+
+    @Test
+    void deleteMe_shouldNotInteractWithOtherDependencies() {
+        doNothing().when(businessPersistence).deleteMe("business@test.com");
+
+        businessService.deleteMe("business@test.com");
+
+        verifyNoInteractions(passwordEncoder);
+        verifyNoInteractions(evaluationPersistence);
+    }
+
     // -------------------------------------------------------------------------
     //  helpers
     // -------------------------------------------------------------------------

@@ -34,4 +34,11 @@ public class BusinessResource {
                                                @RequestBody Business business) {
         return ResponseEntity.ok(businessService.updateMe(authentication.getName(), business));
     }
+
+    @DeleteMapping("/me")
+    @PreAuthorize("hasRole('BUSINESS')")
+    public ResponseEntity<Void> deleteMe(Authentication authentication) {
+        businessService.deleteMe(authentication.getName());
+        return ResponseEntity.noContent().build();
+    }
 }

@@ -166,6 +166,42 @@ public class BusinessPersistenceJpaTest {
     }
 
     // -------------------------------------------------------------------------
+    //  deleteMe
+    // --------------------------------------------------------------------------
+
+    @Test
+    void deleteMe_shouldFindByEmailAndDelete() {
+        BusinessEntity entity = buildBusinessEntity(buildBusiness());
+
+        when(businessRepository.findByEmail("empresa@test.com")).thenReturn(Optional.of(entity));
+
+        businessPersistenceJpa.deleteMe("empresa@test.com");
+
+        verify(businessRepository).findByEmail("empresa@test.com");
+        verify(businessRepository).delete(entity);
+    }
+
+    @Test
+    void deleteMe_shouldThrowNotFoundExceptionWhenEmailNotFound() {
+        when(businessRepository.findByEmail("unknown@test.com")).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class,
+                () -> businessPersistenceJpa.deleteMe("unknown@test.com"));
+        verify(businessRepository, never()).delete(any());
+    }
+
+    @Test
+    void deleteMe_shouldNotSaveAfterDelete() {
+        BusinessEntity entity = buildBusinessEntity(buildBusiness());
+
+        when(businessRepository.findByEmail("empresa@test.com")).thenReturn(Optional.of(entity));
+
+        businessPersistenceJpa.deleteMe("empresa@test.com");
+
+        verify(businessRepository, never()).save(any());
+    }
+
+    // -------------------------------------------------------------------------
     //  helpers
     // -------------------------------------------------------------------------
 

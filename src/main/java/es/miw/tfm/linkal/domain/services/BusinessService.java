@@ -33,4 +33,9 @@ public class BusinessService {
         updated.setAverageRating(evaluationPersistence.averageScoreByBusinessId(updated.getId()));
         return updated;
     }
+
+    public void deleteMe(String email) {
+        businessPersistence.deleteMe(email);
+    }
+
 }
