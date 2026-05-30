@@ -29,7 +29,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final EmailService emailService;
 
-    public record AuthResponse(String token, String role, String email) {}
+    public record AuthResponse(String token, String role, String email, String id) {}
 
     // Login ----------------------------------------------------------------------------------
     public AuthResponse login(String email, String password) {
@@ -39,7 +39,7 @@ public class AuthService {
             throw new BadRequestException("Invalid credentials");
         }
         String token = jwtService.generateToken(user.getEmail(), user.getRole().name());
-        return new AuthResponse(token, user.getRole().name(), user.getEmail());
+        return new AuthResponse(token, user.getRole().name(), user.getEmail(), user.getId().toString());
     }
 
     // Forgot password ---------------------------------------------------------------------

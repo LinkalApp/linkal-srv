@@ -41,7 +41,7 @@ class AuthResourceTest {
     @WithMockUser
     void login_shouldReturn200WithTokenOnValidCredentials() throws Exception {
         AuthService.AuthResponse response =
-                new AuthService.AuthResponse("jwt-token-abc", "BUSINESS", "user@test.com");
+                new AuthService.AuthResponse("jwt-token-abc", "BUSINESS", "user@test.com", "4018d4f4-ad33-47db-b6aa-fdfe8a16bd48");
 
         when(authService.login("user@test.com", "pass123")).thenReturn(response);
 
@@ -64,7 +64,7 @@ class AuthResourceTest {
     @WithMockUser
     void login_shouldReturn200ForInfluencer() throws Exception {
         AuthService.AuthResponse response =
-                new AuthService.AuthResponse("jwt-influencer", "INFLUENCER", "influencer@test.com");
+                new AuthService.AuthResponse("jwt-influencer", "INFLUENCER", "influencer@test.com", "4018d4f4-ad33-47db-b6aa-fdfe8a16bdad");
 
         when(authService.login("influencer@test.com", "myPass")).thenReturn(response);
 
