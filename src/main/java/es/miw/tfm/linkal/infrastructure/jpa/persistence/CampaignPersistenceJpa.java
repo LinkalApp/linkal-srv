@@ -13,6 +13,8 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
 
 @Repository
 @RequiredArgsConstructor
@@ -31,5 +33,12 @@ public class CampaignPersistenceJpa implements CampaignPersistence {
         entity.setMatches(new java.util.ArrayList<>());
         entity.setChats(new java.util.ArrayList<>());
         return campaignRepository.save(entity).toCampaign();
+    }
+
+    @Override
+    public List<Campaign> findByBusinessId(UUID businessId) {
+        return campaignRepository.findAllByBusinessId(businessId).stream()
+                .map(CampaignEntity::toCampaign)
+                .toList();
     }
 }
