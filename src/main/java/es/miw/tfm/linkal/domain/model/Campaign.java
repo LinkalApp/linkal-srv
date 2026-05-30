@@ -20,7 +20,7 @@ public class Campaign {
     private String title;
     private String description;
     private String requirements;
-    private Double reward;
+    private String reward;
     private LocalDate creationDate;
     private String objective;
     private CampaignStatus status;
