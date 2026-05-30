@@ -16,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -140,6 +141,52 @@ public class CampaignPersistenceJpaTest {
         assertEquals(business.getId(), result.getBusinessId());
     }
 
+    // --------------------------------------------------------------------------
+    //  findByBusinessId
+    // --------------------------------------------------------------------------
+
+    @Test
+    void findByBusinessId_shouldReturnMappedCampaigns() {
+        UUID businessId = UUID.randomUUID();
+        BusinessEntity business = buildBusinessEntity();
+        business.setId(businessId);
+
+        CampaignEntity e1 = buildCampaignEntity(business);
+        CampaignEntity e2 = buildCampaignEntity(business);
+
+        when(campaignRepository.findAllByBusinessId(businessId)).thenReturn(List.of(e1, e2));
+
+        List<Campaign> result = campaignPersistenceJpa.findByBusinessId(businessId);
+
+        assertEquals(2, result.size());
+        verify(campaignRepository).findAllByBusinessId(businessId);
+    }
+
+    @Test
+    void findByBusinessId_shouldReturnEmptyListWhenNoCampaigns() {
+        UUID businessId = UUID.randomUUID();
+
+        when(campaignRepository.findAllByBusinessId(businessId)).thenReturn(List.of());
+
+        List<Campaign> result = campaignPersistenceJpa.findByBusinessId(businessId);
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findByBusinessId_shouldMapTitleCorrectly() {
+        UUID businessId = UUID.randomUUID();
+        BusinessEntity business = buildBusinessEntity();
+        business.setId(businessId);
+        CampaignEntity entity = buildCampaignEntity(business);
+
+        when(campaignRepository.findAllByBusinessId(businessId)).thenReturn(List.of(entity));
+
+        List<Campaign> result = campaignPersistenceJpa.findByBusinessId(businessId);
+
+        assertEquals("Campaña Verano", result.get(0).getTitle());
+        assertEquals(businessId, result.get(0).getBusinessId());
+    }
 
     // ------------------------------------------------------------------------
     //  helpers

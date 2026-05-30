@@ -5,7 +5,10 @@ import es.miw.tfm.linkal.configuration.JwtService;
 import es.miw.tfm.linkal.configuration.SecurityConfiguration;
 import es.miw.tfm.linkal.domain.exceptions.NotFoundException;
 import es.miw.tfm.linkal.domain.model.Business;
+import es.miw.tfm.linkal.domain.model.Campaign;
+import es.miw.tfm.linkal.domain.model.enums.CampaignStatus;
 import es.miw.tfm.linkal.domain.services.BusinessService;
+import es.miw.tfm.linkal.domain.services.CampaignService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -14,6 +17,10 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -34,6 +41,8 @@ public class BusinessResourceTest {
 
     @MockitoBean
     private BusinessService businessService;
+    @MockitoBean
+    private CampaignService campaignService;
 
     @MockitoBean
     private JwtService jwtService;
@@ -261,6 +270,84 @@ public class BusinessResourceTest {
     }
 
     // -------------------------------------------------------------------------
+    //  GET /businesses/{id}/campaigns
+    // -------------------------------------------------------------------------
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void getCampaigns_shouldReturn200WithCampaignList() throws Exception {
+        UUID businessId = UUID.randomUUID();
+        Campaign c1 = buildCampaign("Campaña Verano");
+        Campaign c2 = buildCampaign("Campaña Invierno");
+
+        when(campaignService.findByBusinessId(businessId)).thenReturn(List.of(c1, c2));
+
+        mockMvc.perform(get("/api/businesses/{id}/campaigns", businessId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].title").value("Campaña Verano"))
+                .andExpect(jsonPath("$[1].title").value("Campaña Invierno"));
+    }
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void getCampaigns_shouldReturn200WithEmptyList() throws Exception {
+        UUID businessId = UUID.randomUUID();
+        when(campaignService.findByBusinessId(businessId)).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/businesses/{id}/campaigns", businessId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void getCampaigns_shouldReturn401WhenNotAuthenticated() throws Exception {
+        UUID businessId = UUID.randomUUID();
+
+        mockMvc.perform(get("/api/businesses/{id}/campaigns", businessId))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void getCampaigns_shouldReturn200ForInfluencer() throws Exception {
+        UUID businessId = UUID.randomUUID();
+        when(campaignService.findByBusinessId(businessId)).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/businesses/{id}/campaigns", businessId))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void getCampaigns_shouldDelegateToServiceWithCorrectId() throws Exception {
+        UUID businessId = UUID.randomUUID();
+        when(campaignService.findByBusinessId(any())).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/businesses/{id}/campaigns", businessId))
+                .andExpect(status().isOk());
+
+        verify(campaignService).findByBusinessId(businessId);
+    }
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void getCampaigns_shouldReturnCampaignFieldsCorrectly() throws Exception {
+        UUID businessId = UUID.randomUUID();
+        Campaign c = buildCampaign("Campaña Test");
+        c.setStatus(CampaignStatus.OPEN);
+        c.setReward("Descuento 20%");
+
+        when(campaignService.findByBusinessId(businessId)).thenReturn(List.of(c));
+
+        mockMvc.perform(get("/api/businesses/{id}/campaigns", businessId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].title").value("Campaña Test"))
+                .andExpect(jsonPath("$[0].status").value("OPEN"))
+                .andExpect(jsonPath("$[0].reward").value("Descuento 20%"));
+    }
+
+    // -------------------------------------------------------------------------
     //  helpers
     // -------------------------------------------------------------------------
 
@@ -274,6 +361,19 @@ public class BusinessResourceTest {
         business.setProvince("Madrid");
         business.setCategory("Moda");
         return business;
+    }
+
+    private Campaign buildCampaign(String title) {
+        Campaign campaign = new Campaign();
+        campaign.setId(UUID.randomUUID());
+        campaign.setTitle(title);
+        campaign.setDescription("Descripción de prueba");
+        campaign.setRequirements("500 seguidores mínimo");
+        campaign.setReward("Descuento 20%");
+        campaign.setObjective("Aumentar ventas");
+        campaign.setStatus(CampaignStatus.OPEN);
+        campaign.setCreationDate(LocalDate.now());
+        return campaign;
     }
 
 }

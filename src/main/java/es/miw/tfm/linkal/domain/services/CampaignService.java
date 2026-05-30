@@ -5,6 +5,9 @@ import es.miw.tfm.linkal.domain.persistence.CampaignPersistence;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 public class CampaignService {
@@ -15,4 +18,7 @@ public class CampaignService {
         return campaignPersistence.create(campaign, businessEmail);
     }
 
+    public List<Campaign> findByBusinessId(UUID businessId) {
+        return campaignPersistence.findByBusinessId(businessId);
+    }
 }
