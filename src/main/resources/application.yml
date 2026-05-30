@@ -57,6 +57,14 @@ spring:
 
 server:
   port: 9090
+
+logging:
+  level:
+    es.miw.tfm.linkal: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.web.servlet.mvc.method.annotation: TRACE
+
 ---
 # ══════════════════════════════════════════════════════════════════════
 #  PERFIL: prod (AWS)
