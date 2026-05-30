@@ -10,6 +10,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -77,6 +78,53 @@ public class CampaignServiceTest {
         Campaign result = campaignService.create(campaign, "business@test.com");
 
         assertNotNull(result.getCreationDate());
+    }
+
+    // ------------------------------------------------------------------------
+    //  findByBusinessId
+    // -------------------------------------------------------------------------
+
+    @Test
+    void findByBusinessId_shouldDelegateToPersistence() {
+        UUID businessId = UUID.randomUUID();
+        when(campaignPersistence.findByBusinessId(businessId)).thenReturn(List.of());
+
+        campaignService.findByBusinessId(businessId);
+
+        verify(campaignPersistence).findByBusinessId(businessId);
+    }
+
+    @Test
+    void findByBusinessId_shouldReturnCampaignsFromPersistence() {
+        UUID businessId = UUID.randomUUID();
+        List<Campaign> campaigns = List.of(buildSavedCampaign(), buildSavedCampaign());
+
+        when(campaignPersistence.findByBusinessId(businessId)).thenReturn(campaigns);
+
+        List<Campaign> result = campaignService.findByBusinessId(businessId);
+
+        assertEquals(2, result.size());
+    }
+
+    @Test
+    void findByBusinessId_shouldReturnEmptyListWhenNoCampaigns() {
+        UUID businessId = UUID.randomUUID();
+        when(campaignPersistence.findByBusinessId(businessId)).thenReturn(List.of());
+
+        List<Campaign> result = campaignService.findByBusinessId(businessId);
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findByBusinessId_shouldPassCorrectId() {
+        UUID businessId = UUID.randomUUID();
+        when(campaignPersistence.findByBusinessId(any())).thenReturn(List.of());
+
+        campaignService.findByBusinessId(businessId);
+
+        verify(campaignPersistence).findByBusinessId(businessId);
+        verifyNoMoreInteractions(campaignPersistence);
     }
 
     // ------------------------------------------------------------------------
