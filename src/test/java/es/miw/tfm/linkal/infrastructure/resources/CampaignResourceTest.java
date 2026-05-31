@@ -3,6 +3,7 @@ package es.miw.tfm.linkal.infrastructure.resources;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import es.miw.tfm.linkal.configuration.JwtService;
 import es.miw.tfm.linkal.configuration.SecurityConfiguration;
+import es.miw.tfm.linkal.domain.exceptions.ForbiddenException;
 import es.miw.tfm.linkal.domain.exceptions.NotFoundException;
 import es.miw.tfm.linkal.domain.model.Campaign;
 import es.miw.tfm.linkal.domain.model.enums.CampaignStatus;
@@ -24,6 +25,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(CampaignResource.class)
@@ -121,8 +123,117 @@ public class CampaignResourceTest {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    //  helpers
+    //  PUT /api/campaigns/{id} — actualizar campaña
     // ─────────────────────────────────────────────────────────────────────────
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void update_shouldReturn200WithUpdatedCampaign() throws Exception {
+        UUID id = UUID.randomUUID();
+        Campaign campaign = buildUpdateCampaign(CampaignStatus.IN_PROGRESS);
+        Campaign updated = buildSavedCampaign();
+        updated.setTitle("Campaña editada");
+        updated.setStatus(CampaignStatus.IN_PROGRESS);
+
+        when(campaignService.update(eq(id), any(), eq("business@test.com"))).thenReturn(updated);
+
+        mockMvc.perform(put("/api/campaigns/" + id)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(campaign)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").exists())
+                .andExpect(jsonPath("$.title").value("Campaña editada"))
+                .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
+    }
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void update_shouldReturn200WhenStatusChangedToClosed() throws Exception {
+        UUID id = UUID.randomUUID();
+        Campaign updated = buildSavedCampaign();
+        updated.setStatus(CampaignStatus.CLOSED);
+
+        when(campaignService.update(eq(id), any(), any())).thenReturn(updated);
+
+        mockMvc.perform(put("/api/campaigns/" + id)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(buildUpdateCampaign(CampaignStatus.CLOSED))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CLOSED"));
+    }
+
+    @Test
+    void update_shouldReturn401WhenNotAuthenticated() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        mockMvc.perform(put("/api/campaigns/" + id)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(buildUpdateCampaign(null))))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void update_shouldReturn403WhenNotBusiness() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        mockMvc.perform(put("/api/campaigns/" + id)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(buildUpdateCampaign(null))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "other@test.com", roles = "BUSINESS")
+    void update_shouldReturn403WhenNotOwner() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        when(campaignService.update(any(), any(), eq("other@test.com")))
+                .thenThrow(new ForbiddenException("No tienes permiso para editar esta campaña"));
+
+        mockMvc.perform(put("/api/campaigns/" + id)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(buildUpdateCampaign(null))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void update_shouldReturn404WhenCampaignNotFound() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        when(campaignService.update(any(), any(), any()))
+                .thenThrow(new NotFoundException("Campaign not found: " + id));
+
+        mockMvc.perform(put("/api/campaigns/" + id)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(buildUpdateCampaign(null))))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void update_shouldAcceptEmptyBody() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(campaignService.update(any(), any(), any())).thenReturn(buildSavedCampaign());
+
+        mockMvc.perform(put("/api/campaigns/" + id)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isOk());
+    }
+
+
+    // --------------------------------------------------------------------------
+    //  helpers
+    // --------------------------------------------------------------------------
 
     private Campaign buildValidCampaign() {
         Campaign campaign = new Campaign();
@@ -144,6 +255,17 @@ public class CampaignResourceTest {
         campaign.setObjective("Aumentar visibilidad de la marca");
         campaign.setStatus(CampaignStatus.OPEN);
         campaign.setCreationDate(LocalDate.now());
+        return campaign;
+    }
+
+    private Campaign buildUpdateCampaign(CampaignStatus status) {
+        Campaign campaign = new Campaign();
+        campaign.setTitle("Campaña editada");
+        campaign.setDescription("Descripción actualizada");
+        campaign.setRequirements("Nuevos requisitos");
+        campaign.setReward("Nueva recompensa");
+        campaign.setObjective("Nuevo objetivo");
+        campaign.setStatus(status);
         return campaign;
     }
 }

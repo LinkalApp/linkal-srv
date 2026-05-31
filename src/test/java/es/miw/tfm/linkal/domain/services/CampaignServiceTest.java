@@ -127,6 +127,60 @@ public class CampaignServiceTest {
         verifyNoMoreInteractions(campaignPersistence);
     }
 
+    // --------------------------------------------------------------------------
+    //  update
+    // --------------------------------------------------------------------------
+
+    @Test
+    void update_shouldDelegateToPersistence() {
+        UUID id = UUID.randomUUID();
+        Campaign campaign = buildUpdateCampaign();
+        when(campaignPersistence.update(id, campaign, "business@test.com")).thenReturn(buildSavedCampaign());
+
+        campaignService.update(id, campaign, "business@test.com");
+
+        verify(campaignPersistence).update(id, campaign, "business@test.com");
+    }
+
+    @Test
+    void update_shouldReturnUpdatedCampaign() {
+        UUID id = UUID.randomUUID();
+        Campaign campaign = buildUpdateCampaign();
+        Campaign updated = buildSavedCampaign();
+        updated.setTitle("Título actualizado");
+        updated.setStatus(CampaignStatus.IN_PROGRESS);
+
+        when(campaignPersistence.update(any(), any(), any())).thenReturn(updated);
+
+        Campaign result = campaignService.update(id, campaign, "business@test.com");
+
+        assertNotNull(result);
+        assertEquals("Título actualizado", result.getTitle());
+        assertEquals(CampaignStatus.IN_PROGRESS, result.getStatus());
+    }
+
+    @Test
+    void update_shouldPassCorrectEmail() {
+        UUID id = UUID.randomUUID();
+        Campaign campaign = buildUpdateCampaign();
+        when(campaignPersistence.update(any(), any(), any())).thenReturn(buildSavedCampaign());
+
+        campaignService.update(id, campaign, "otro@empresa.com");
+
+        verify(campaignPersistence).update(eq(id), eq(campaign), eq("otro@empresa.com"));
+    }
+
+    @Test
+    void update_shouldNotCallCreate() {
+        UUID id = UUID.randomUUID();
+        Campaign campaign = buildUpdateCampaign();
+        when(campaignPersistence.update(any(), any(), any())).thenReturn(buildSavedCampaign());
+
+        campaignService.update(id, campaign, "business@test.com");
+
+        verify(campaignPersistence, never()).create(any(), any());
+    }
+
     // ------------------------------------------------------------------------
     //  helpers
     // ------------------------------------------------------------------------
@@ -152,5 +206,13 @@ public class CampaignServiceTest {
                 .status(CampaignStatus.OPEN)
                 .creationDate(LocalDate.now())
                 .build();
+    }
+
+    private Campaign buildUpdateCampaign() {
+        Campaign campaign = new Campaign();
+        campaign.setTitle("Título actualizado");
+        campaign.setDescription("Nueva descripción");
+        campaign.setStatus(CampaignStatus.IN_PROGRESS);
+        return campaign;
     }
 }
