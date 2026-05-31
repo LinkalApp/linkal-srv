@@ -1,6 +1,8 @@
 package es.miw.tfm.linkal.infrastructure.jpa.persistence;
 
+import es.miw.tfm.linkal.domain.exceptions.ForbiddenException;
 import es.miw.tfm.linkal.domain.exceptions.NotFoundException;
+import es.miw.tfm.linkal.domain.model.Business;
 import es.miw.tfm.linkal.domain.model.Campaign;
 import es.miw.tfm.linkal.domain.model.enums.CampaignStatus;
 import es.miw.tfm.linkal.domain.persistence.CampaignPersistence;
@@ -40,5 +42,29 @@ public class CampaignPersistenceJpa implements CampaignPersistence {
         return campaignRepository.findAllByBusinessId(businessId).stream()
                 .map(CampaignEntity::toCampaign)
                 .toList();
+    }
+
+    @Override
+    @Transactional
+    public Campaign update(UUID id, Campaign campaign, String businessEmail) {
+        CampaignEntity entity = campaignRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Campaign not found: " + id));
+
+        if (!entity.getBusiness().getEmail().equals(businessEmail)) {
+            throw new ForbiddenException("No tienes permiso para editar esta campaña");
+        }
+
+        applyUpdates(entity, campaign);
+
+        return campaignRepository.save(entity).toCampaign();
+    }
+
+    private void applyUpdates(CampaignEntity entity, Campaign campaign) {
+        if (campaign.getTitle()        != null) entity.setTitle(campaign.getTitle());
+        if (campaign.getDescription()  != null) entity.setDescription(campaign.getDescription());
+        if (campaign.getRequirements() != null) entity.setRequirements(campaign.getRequirements());
+        if (campaign.getReward()       != null) entity.setReward(campaign.getReward());
+        if (campaign.getObjective()    != null) entity.setObjective(campaign.getObjective());
+        if (campaign.getStatus()       != null) entity.setStatus(campaign.getStatus());
     }
 }

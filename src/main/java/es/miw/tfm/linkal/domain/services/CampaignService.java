@@ -21,4 +21,8 @@ public class CampaignService {
     public List<Campaign> findByBusinessId(UUID businessId) {
         return campaignPersistence.findByBusinessId(businessId);
     }
+
+    public Campaign update(UUID id, Campaign campaign, String businessEmail) {
+        return campaignPersistence.update(id, campaign, businessEmail);
+    }
 }
