@@ -8,4 +8,6 @@ import java.util.UUID;
 public interface CampaignPersistence {
     Campaign create(Campaign campaign, String businessEmail);
     List<Campaign> findByBusinessId(UUID businessId);
+    Campaign update(UUID id, Campaign campaign, String businessEmail);
+
 }

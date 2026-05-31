@@ -1,5 +1,6 @@
 package es.miw.tfm.linkal.infrastructure.jpa.persistence;
 
+import es.miw.tfm.linkal.domain.exceptions.ForbiddenException;
 import es.miw.tfm.linkal.domain.exceptions.NotFoundException;
 import es.miw.tfm.linkal.domain.model.Campaign;
 import es.miw.tfm.linkal.domain.model.enums.CampaignStatus;
@@ -189,6 +190,119 @@ public class CampaignPersistenceJpaTest {
     }
 
     // ------------------------------------------------------------------------
+    //  update
+    // -------------------------------------------------------------------------
+
+    @Test
+    void update_shouldThrowNotFoundWhenCampaignNotFound() {
+        UUID id = UUID.randomUUID();
+        when(campaignRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class,
+                () -> campaignPersistenceJpa.update(id, new Campaign(), "owner@test.com"));
+        verify(campaignRepository, never()).save(any());
+    }
+
+    @Test
+    void update_shouldThrowForbiddenWhenNotOwner() {
+        UUID id = UUID.randomUUID();
+        CampaignEntity entity = buildCampaignEntity(buildBusinessEntity("owner@test.com"));
+
+        when(campaignRepository.findById(id)).thenReturn(Optional.of(entity));
+
+        assertThrows(ForbiddenException.class,
+                () -> campaignPersistenceJpa.update(id, new Campaign(), "otro@test.com"));
+        verify(campaignRepository, never()).save(any());
+    }
+
+    @Test
+    void update_shouldUpdateTitle() {
+        UUID id = UUID.randomUUID();
+        CampaignEntity entity = buildCampaignEntity(buildBusinessEntity("owner@test.com"));
+        when(campaignRepository.findById(id)).thenReturn(Optional.of(entity));
+        when(campaignRepository.save(entity)).thenReturn(entity);
+
+        Campaign campaign = new Campaign();
+        campaign.setTitle("Nuevo título");
+
+        campaignPersistenceJpa.update(id, campaign, "owner@test.com");
+
+        assertEquals("Nuevo título", entity.getTitle());
+    }
+
+    @Test
+    void update_shouldUpdateStatus() {
+        UUID id = UUID.randomUUID();
+        CampaignEntity entity = buildCampaignEntity(buildBusinessEntity("owner@test.com"));
+        when(campaignRepository.findById(id)).thenReturn(Optional.of(entity));
+        when(campaignRepository.save(entity)).thenReturn(entity);
+
+        Campaign campaign = new Campaign();
+        campaign.setStatus(CampaignStatus.CLOSED);
+
+        campaignPersistenceJpa.update(id, campaign, "owner@test.com");
+
+        assertEquals(CampaignStatus.CLOSED, entity.getStatus());
+    }
+
+    @Test
+    void update_shouldUpdateAllFields() {
+        UUID id = UUID.randomUUID();
+        CampaignEntity entity = buildCampaignEntity(buildBusinessEntity("owner@test.com"));
+        when(campaignRepository.findById(id)).thenReturn(Optional.of(entity));
+        when(campaignRepository.save(entity)).thenReturn(entity);
+
+        Campaign campaign = new Campaign();
+        campaign.setTitle("Nuevo título");
+        campaign.setDescription("Nueva descripción");
+        campaign.setRequirements("Nuevos requisitos");
+        campaign.setReward("Nueva recompensa");
+        campaign.setObjective("Nuevo objetivo");
+        campaign.setStatus(CampaignStatus.IN_PROGRESS);
+
+        campaignPersistenceJpa.update(id, campaign, "owner@test.com");
+
+        assertEquals("Nuevo título", entity.getTitle());
+        assertEquals("Nueva descripción", entity.getDescription());
+        assertEquals("Nuevos requisitos", entity.getRequirements());
+        assertEquals("Nueva recompensa", entity.getReward());
+        assertEquals("Nuevo objetivo", entity.getObjective());
+        assertEquals(CampaignStatus.IN_PROGRESS, entity.getStatus());
+    }
+
+    @Test
+    void update_shouldNotOverwriteFieldsWhenValueIsNull() {
+        UUID id = UUID.randomUUID();
+        CampaignEntity entity = buildCampaignEntity(buildBusinessEntity("owner@test.com"));
+        entity.setTitle("Título original");
+        entity.setReward("Recompensa original");
+
+        when(campaignRepository.findById(id)).thenReturn(Optional.of(entity));
+        when(campaignRepository.save(entity)).thenReturn(entity);
+
+        campaignPersistenceJpa.update(id, new Campaign(), "owner@test.com");
+
+        assertEquals("Título original", entity.getTitle());
+        assertEquals("Recompensa original", entity.getReward());
+    }
+
+    @Test
+    void update_shouldSaveAndReturnCampaign() {
+        UUID id = UUID.randomUUID();
+        CampaignEntity entity = buildCampaignEntity(buildBusinessEntity("owner@test.com"));
+        when(campaignRepository.findById(id)).thenReturn(Optional.of(entity));
+        when(campaignRepository.save(entity)).thenReturn(entity);
+
+        Campaign campaign = new Campaign();
+        campaign.setTitle("Nuevo título");
+
+        Campaign result = campaignPersistenceJpa.update(id, campaign, "owner@test.com");
+
+        assertNotNull(result);
+        verify(campaignRepository).save(entity);
+    }
+
+    // ------------------------------------------------------------------------
     //  helpers
     // ------------------------------------------------------------------------
 
@@ -203,10 +317,14 @@ public class CampaignPersistenceJpaTest {
     }
 
     private BusinessEntity buildBusinessEntity() {
+        return buildBusinessEntity("business@test.com");
+    }
+
+    private BusinessEntity buildBusinessEntity(String email) {
         BusinessEntity entity = new BusinessEntity();
         entity.setId(UUID.randomUUID());
         entity.setName("Mi Empresa");
-        entity.setEmail("business@test.com");
+        entity.setEmail(email);
         entity.setPassword("hashedPass");
         return entity;
     }

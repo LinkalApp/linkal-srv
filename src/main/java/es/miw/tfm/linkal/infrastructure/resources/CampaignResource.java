@@ -7,9 +7,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 
 @Rest
@@ -24,5 +24,13 @@ public class CampaignResource {
                                            Authentication authentication) {
         return ResponseEntity.status(201)
                 .body(campaignService.create(campaign, authentication.getName()));
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('BUSINESS')")
+    public ResponseEntity<Campaign> update(@PathVariable UUID id,
+                                           @RequestBody Campaign campaign,
+                                           Authentication authentication) {
+        return ResponseEntity.ok(campaignService.update(id, campaign, authentication.getName()));
     }
 }
