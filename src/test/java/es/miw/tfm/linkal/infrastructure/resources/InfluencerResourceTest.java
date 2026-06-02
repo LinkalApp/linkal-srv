@@ -16,6 +16,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 
+import java.util.List;
+
 import static org.mockito.ArgumentMatchers.any;
 
 import static org.mockito.ArgumentMatchers.eq;
@@ -146,6 +148,26 @@ class InfluencerResourceTest {
 
         mockMvc.perform(get("/api/influencers/me"))
                 .andExpect(status().isNotFound());
+    }
+
+    // -------------------------------------------------------------------------
+    //  GET /api/influencers — requiere autenticación
+    // -------------------------------------------------------------------------
+
+    @Test
+    @WithMockUser
+    void readAll_shouldReturn200WithList() throws Exception {
+        when(influencerService.readAll()).thenReturn(List.of(buildInfluencer(), buildInfluencer()));
+
+        mockMvc.perform(get("/api/influencers"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2));
+    }
+
+    @Test
+    void readAll_shouldReturn401WhenNotAuthenticated() throws Exception {
+        mockMvc.perform(get("/api/influencers"))
+                .andExpect(status().isUnauthorized());
     }
 
     // ------------------------------------------------------------------------

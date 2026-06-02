@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class InfluencerService {
@@ -24,6 +26,10 @@ public class InfluencerService {
         influencer.setPassword(null);
         influencer.setAverageRating(evaluationPersistence.averageScoreByInfluencerId(influencer.getId()));
         return influencer;
+    }
+
+    public List<Influencer> readAll() {
+        return influencerPersistence.readAll();
     }
 
     public Influencer updateMe(String email, Influencer influencer) {

@@ -102,6 +102,32 @@ class InfluencerPersistenceJpaTest {
                 () -> influencerPersistenceJpa.readMe("unknown@test.com"));
     }
 
+    // --------------------------------------------------------------------------
+    //  readAll
+    // --------------------------------------------------------------------------
+
+    @Test
+    void readAll_shouldReturnMappedList() {
+        InfluencerEntity e1 = buildInfluencerEntity(buildInfluencer());
+        InfluencerEntity e2 = buildInfluencerEntity(buildInfluencer());
+        e2.setEmail("otro@test.com");
+
+        when(influencerRepository.findAll()).thenReturn(List.of(e1, e2));
+
+        List<Influencer> result = influencerPersistenceJpa.readAll();
+
+        assertEquals(2, result.size());
+    }
+
+    @Test
+    void readAll_shouldReturnEmptyListWhenNoInfluencers() {
+        when(influencerRepository.findAll()).thenReturn(List.of());
+
+        List<Influencer> result = influencerPersistenceJpa.readAll();
+
+        assertTrue(result.isEmpty());
+    }
+
     // ------------------------------------------------------------------------
     //  updateMe
     // -------------------------------------------------------------------------
