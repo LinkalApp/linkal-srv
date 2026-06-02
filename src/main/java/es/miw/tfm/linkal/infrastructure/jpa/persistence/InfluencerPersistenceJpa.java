@@ -10,6 +10,8 @@ import es.miw.tfm.linkal.infrastructure.jpa.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 @RequiredArgsConstructor
 public class InfluencerPersistenceJpa implements InfluencerPersistence {
@@ -29,6 +31,13 @@ public class InfluencerPersistenceJpa implements InfluencerPersistence {
         return influencerRepository.findByEmail(email)
                 .map(InfluencerEntity::toInfluencer)
                 .orElseThrow(() -> new NotFoundException("Influencer not found: " + email));
+    }
+
+    @Override
+    public List<Influencer> readAll() {
+        return influencerRepository.findAll().stream()
+                .map(InfluencerEntity::toInfluencer)
+                .toList();
     }
 
     @Override

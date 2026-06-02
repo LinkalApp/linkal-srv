@@ -9,6 +9,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Rest
 @RequestMapping("/api/influencers")
 @RequiredArgsConstructor
@@ -25,6 +27,12 @@ public class InfluencerResource {
     @PreAuthorize("hasRole('INFLUENCER')")
     public ResponseEntity<Influencer> readMe(Authentication authentication) {
         return ResponseEntity.ok(influencerService.readMe(authentication.getName()));
+    }
+
+    @GetMapping
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<Influencer>> readAll() {
+        return ResponseEntity.ok(influencerService.readAll());
     }
 
     @PutMapping("/me")
