@@ -22,10 +22,9 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(CampaignResource.class)
@@ -122,9 +121,9 @@ public class CampaignResourceTest {
                 .andExpect(jsonPath("$.businessId").value(businessId.toString()));
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
     //  PUT /api/campaigns/{id} — actualizar campaña
-    // ─────────────────────────────────────────────────────────────────────────
+    // --------------------------------------------------------------------------
 
     @Test
     @WithMockUser(username = "business@test.com", roles = "BUSINESS")
@@ -230,6 +229,65 @@ public class CampaignResourceTest {
                 .andExpect(status().isOk());
     }
 
+    // --------------------------------------------------------------------------
+    //  DELETE /api/campaigns/{id} — eliminar campaña
+    // --------------------------------------------------------------------------
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void delete_shouldReturn204WhenSuccessful() throws Exception {
+        UUID id = UUID.randomUUID();
+        doNothing().when(campaignService).delete(eq(id), eq("business@test.com"));
+
+        mockMvc.perform(delete("/api/campaigns/" + id)
+                        .with(csrf()))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void delete_shouldReturn401WhenNotAuthenticated() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        mockMvc.perform(delete("/api/campaigns/" + id)
+                        .with(csrf()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void delete_shouldReturn403WhenNotBusiness() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        mockMvc.perform(delete("/api/campaigns/" + id)
+                        .with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "other@test.com", roles = "BUSINESS")
+    void delete_shouldReturn403WhenNotOwner() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        doThrow(new ForbiddenException("No tienes permiso para eliminar esta campaña"))
+                .when(campaignService).delete(eq(id), eq("other@test.com"));
+
+        mockMvc.perform(delete("/api/campaigns/" + id)
+                        .with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void delete_shouldReturn404WhenCampaignNotFound() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        doThrow(new NotFoundException("Campaign not found: " + id))
+                .when(campaignService).delete(eq(id), eq("business@test.com"));
+
+        mockMvc.perform(delete("/api/campaigns/" + id)
+                        .with(csrf()))
+                .andExpect(status().isNotFound());
+    }
 
     // --------------------------------------------------------------------------
     //  helpers

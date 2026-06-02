@@ -302,6 +302,53 @@ public class CampaignPersistenceJpaTest {
         verify(campaignRepository).save(entity);
     }
 
+    // --------------------------------------------------------------------------
+    //  delete
+    // --------------------------------------------------------------------------
+
+    @Test
+    void delete_shouldThrowNotFoundWhenCampaignNotFound() {
+        UUID id = UUID.randomUUID();
+        when(campaignRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class,
+                () -> campaignPersistenceJpa.delete(id, "owner@test.com"));
+        verify(campaignRepository, never()).delete(any());
+    }
+
+    @Test
+    void delete_shouldThrowForbiddenWhenNotOwner() {
+        UUID id = UUID.randomUUID();
+        CampaignEntity entity = buildCampaignEntity(buildBusinessEntity("owner@test.com"));
+        when(campaignRepository.findById(id)).thenReturn(Optional.of(entity));
+
+        assertThrows(ForbiddenException.class,
+                () -> campaignPersistenceJpa.delete(id, "otro@test.com"));
+        verify(campaignRepository, never()).delete(any());
+    }
+
+    @Test
+    void delete_shouldDeleteEntityWhenOwner() {
+        UUID id = UUID.randomUUID();
+        CampaignEntity entity = buildCampaignEntity(buildBusinessEntity("owner@test.com"));
+        when(campaignRepository.findById(id)).thenReturn(Optional.of(entity));
+
+        campaignPersistenceJpa.delete(id, "owner@test.com");
+
+        verify(campaignRepository).delete(entity);
+    }
+
+    @Test
+    void delete_shouldNotSaveAfterDelete() {
+        UUID id = UUID.randomUUID();
+        CampaignEntity entity = buildCampaignEntity(buildBusinessEntity("owner@test.com"));
+        when(campaignRepository.findById(id)).thenReturn(Optional.of(entity));
+
+        campaignPersistenceJpa.delete(id, "owner@test.com");
+
+        verify(campaignRepository, never()).save(any());
+    }
+
     // ------------------------------------------------------------------------
     //  helpers
     // ------------------------------------------------------------------------
