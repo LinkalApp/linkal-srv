@@ -25,4 +25,8 @@ public class CampaignService {
     public Campaign update(UUID id, Campaign campaign, String businessEmail) {
         return campaignPersistence.update(id, campaign, businessEmail);
     }
+
+    public void delete(UUID id, String businessEmail) {
+        campaignPersistence.delete(id, businessEmail);
+    }
 }

@@ -9,5 +9,5 @@ public interface CampaignPersistence {
     Campaign create(Campaign campaign, String businessEmail);
     List<Campaign> findByBusinessId(UUID businessId);
     Campaign update(UUID id, Campaign campaign, String businessEmail);
-
+    void delete(UUID id, String businessEmail);
 }
