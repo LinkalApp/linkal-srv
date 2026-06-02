@@ -181,6 +181,47 @@ public class CampaignServiceTest {
         verify(campaignPersistence, never()).create(any(), any());
     }
 
+    // -------------------------------------------------------------------------
+    //  delete
+    // --------------------------------------------------------------------------
+
+    @Test
+    void delete_shouldDelegateToPersistence() {
+        UUID id = UUID.randomUUID();
+        doNothing().when(campaignPersistence).delete(id, "business@test.com");
+
+        campaignService.delete(id, "business@test.com");
+
+        verify(campaignPersistence).delete(id, "business@test.com");
+    }
+
+    @Test
+    void delete_shouldPassCorrectEmail() {
+        UUID id = UUID.randomUUID();
+
+        campaignService.delete(id, "otro@empresa.com");
+
+        verify(campaignPersistence).delete(eq(id), eq("otro@empresa.com"));
+    }
+
+    @Test
+    void delete_shouldNotCallCreate() {
+        UUID id = UUID.randomUUID();
+
+        campaignService.delete(id, "business@test.com");
+
+        verify(campaignPersistence, never()).create(any(), any());
+    }
+
+    @Test
+    void delete_shouldNotCallUpdate() {
+        UUID id = UUID.randomUUID();
+
+        campaignService.delete(id, "business@test.com");
+
+        verify(campaignPersistence, never()).update(any(), any(), any());
+    }
+
     // ------------------------------------------------------------------------
     //  helpers
     // ------------------------------------------------------------------------

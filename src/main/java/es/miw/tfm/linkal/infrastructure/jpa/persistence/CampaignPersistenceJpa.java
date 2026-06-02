@@ -67,4 +67,17 @@ public class CampaignPersistenceJpa implements CampaignPersistence {
         if (campaign.getObjective()    != null) entity.setObjective(campaign.getObjective());
         if (campaign.getStatus()       != null) entity.setStatus(campaign.getStatus());
     }
+
+    @Override
+    @Transactional
+    public void delete(UUID id, String businessEmail) {
+        CampaignEntity entity = campaignRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Campaign not found: " + id));
+
+        if (!entity.getBusiness().getEmail().equals(businessEmail)) {
+            throw new ForbiddenException("No tienes permiso para eliminar esta campaña");
+        }
+
+        campaignRepository.delete(entity);
+    }
 }

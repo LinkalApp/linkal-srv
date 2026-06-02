@@ -33,4 +33,12 @@ public class CampaignResource {
                                            Authentication authentication) {
         return ResponseEntity.ok(campaignService.update(id, campaign, authentication.getName()));
     }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('BUSINESS')")
+    public ResponseEntity<Void> delete(@PathVariable UUID id,
+                                       Authentication authentication) {
+        campaignService.delete(id, authentication.getName());
+        return ResponseEntity.noContent().build();
+    }
 }
