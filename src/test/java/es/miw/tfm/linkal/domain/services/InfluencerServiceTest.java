@@ -10,6 +10,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -128,6 +129,30 @@ public class InfluencerServiceTest {
         Influencer result = influencerService.readMe("influencer@test.com");
 
         assertNull(result.getAverageRating());
+    }
+
+    // -------------------------------------------------------------------------
+    //  readAll
+    // -------------------------------------------------------------------------
+
+    @Test
+    void readAll_shouldReturnAllInfluencers() {
+        List<Influencer> list = List.of(buildInfluencer("p1"), buildInfluencer("p2"));
+        when(influencerPersistence.readAll()).thenReturn(list);
+
+        List<Influencer> result = influencerService.readAll();
+
+        assertEquals(2, result.size());
+        verify(influencerPersistence).readAll();
+    }
+
+    @Test
+    void readAll_shouldReturnEmptyListWhenNoInfluencers() {
+        when(influencerPersistence.readAll()).thenReturn(List.of());
+
+        List<Influencer> result = influencerService.readAll();
+
+        assertTrue(result.isEmpty());
     }
 
     // -------------------------------------------------------------------------
