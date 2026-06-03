@@ -41,4 +41,10 @@ public class CampaignResource {
         campaignService.delete(id, authentication.getName());
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/open")
+    @PreAuthorize("hasRole('INFLUENCER')")
+    public ResponseEntity<java.util.List<Campaign>> findAllOpen() {
+        return ResponseEntity.ok(campaignService.findAllOpen());
+    }
 }
