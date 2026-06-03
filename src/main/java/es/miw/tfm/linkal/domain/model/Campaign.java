@@ -25,4 +25,13 @@ public class Campaign {
     private String objective;
     private CampaignStatus status;
     private UUID businessId;
+
+    // Datos del negocio
+    private String businessName;
+    private String businessCategory;
+    private String businessDescription;
+    private String businessWebsite;
+    private String businessProvince;
+    private String businessAddress;
+    private Boolean businessVerified;
 }

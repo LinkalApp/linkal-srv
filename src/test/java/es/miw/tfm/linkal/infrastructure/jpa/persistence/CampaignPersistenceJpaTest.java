@@ -190,6 +190,69 @@ public class CampaignPersistenceJpaTest {
     }
 
     // ------------------------------------------------------------------------
+    //  findAllOpen
+    // ------------------------------------------------------------------------
+
+    @Test
+    void findAllOpen_shouldReturnEmptyListWhenNoCampaigns() {
+        when(campaignRepository.findAllByStatus(CampaignStatus.OPEN)).thenReturn(List.of());
+
+        List<Campaign> result = campaignPersistenceJpa.findAllOpen();
+
+        assertTrue(result.isEmpty());
+        verify(campaignRepository).findAllByStatus(CampaignStatus.OPEN);
+    }
+
+    @Test
+    void findAllOpen_shouldReturnMappedCampaigns() {
+        BusinessEntity business = buildBusinessEntity();
+        CampaignEntity e1 = buildCampaignEntity(business);
+        CampaignEntity e2 = buildCampaignEntity(business);
+
+        when(campaignRepository.findAllByStatus(CampaignStatus.OPEN)).thenReturn(List.of(e1, e2));
+
+        List<Campaign> result = campaignPersistenceJpa.findAllOpen();
+
+        assertEquals(2, result.size());
+    }
+
+    @Test
+    void findAllOpen_shouldEnrichWithBusinessName() {
+        BusinessEntity business = buildBusinessEntity();
+        business.setName("Mi Negocio");
+        CampaignEntity entity = buildCampaignEntity(business);
+
+        when(campaignRepository.findAllByStatus(CampaignStatus.OPEN)).thenReturn(List.of(entity));
+
+        List<Campaign> result = campaignPersistenceJpa.findAllOpen();
+
+        assertEquals("Mi Negocio", result.get(0).getBusinessName());
+    }
+
+    @Test
+    void findAllOpen_shouldEnrichWithBusinessCategory() {
+        BusinessEntity business = buildBusinessEntity();
+        business.setCategory("Tecnología");
+        CampaignEntity entity = buildCampaignEntity(business);
+
+        when(campaignRepository.findAllByStatus(CampaignStatus.OPEN)).thenReturn(List.of(entity));
+
+        List<Campaign> result = campaignPersistenceJpa.findAllOpen();
+
+        assertEquals("Tecnología", result.get(0).getBusinessCategory());
+    }
+
+    @Test
+    void findAllOpen_shouldOnlyReturnOpenStatus() {
+        when(campaignRepository.findAllByStatus(CampaignStatus.OPEN)).thenReturn(List.of());
+
+        campaignPersistenceJpa.findAllOpen();
+
+        verify(campaignRepository).findAllByStatus(CampaignStatus.OPEN);
+        verify(campaignRepository, never()).findAllByBusinessId(any());
+    }
+
+    // ------------------------------------------------------------------------
     //  update
     // -------------------------------------------------------------------------
 

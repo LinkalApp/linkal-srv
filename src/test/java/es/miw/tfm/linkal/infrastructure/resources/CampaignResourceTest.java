@@ -121,6 +121,55 @@ public class CampaignResourceTest {
                 .andExpect(jsonPath("$.businessId").value(businessId.toString()));
     }
 
+    // ------------------------------------------------------------------------
+    //  GET /api/campaigns/open — campañas abiertas para influencer
+    // -------------------------------------------------------------------------
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void findAllOpen_shouldReturn200WithList() throws Exception {
+        Campaign c = buildOpenCampaign();
+        when(campaignService.findAllOpen()).thenReturn(java.util.List.of(c));
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .get("/api/campaigns/open")
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].title").value("Campaña Verano"))
+                .andExpect(jsonPath("$[0].businessName").value("Mi Negocio"))
+                .andExpect(jsonPath("$[0].status").value("OPEN"));
+    }
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void findAllOpen_shouldReturn200WithEmptyList() throws Exception {
+        when(campaignService.findAllOpen()).thenReturn(java.util.List.of());
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .get("/api/campaigns/open")
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    void findAllOpen_shouldReturn401WhenNotAuthenticated() throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .get("/api/campaigns/open")
+                        .with(csrf()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void findAllOpen_shouldReturn403WhenNotInfluencer() throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .get("/api/campaigns/open")
+                        .with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
     // -------------------------------------------------------------------------
     //  PUT /api/campaigns/{id} — actualizar campaña
     // --------------------------------------------------------------------------
@@ -325,5 +374,17 @@ public class CampaignResourceTest {
         campaign.setObjective("Nuevo objetivo");
         campaign.setStatus(status);
         return campaign;
+    }
+
+    private Campaign buildOpenCampaign() {
+        Campaign c = buildSavedCampaign();
+        c.setBusinessName("Mi Negocio");
+        c.setBusinessCategory("Tecnología");
+        c.setBusinessDescription("Descripción del negocio");
+        c.setBusinessWebsite("www.minegocio.com");
+        c.setBusinessProvince("Madrid");
+        c.setBusinessAddress("Calle Mayor 1");
+        c.setBusinessVerified(true);
+        return c;
     }
 }

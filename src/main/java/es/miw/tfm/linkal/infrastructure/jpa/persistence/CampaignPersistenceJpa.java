@@ -80,4 +80,24 @@ public class CampaignPersistenceJpa implements CampaignPersistence {
 
         campaignRepository.delete(entity);
     }
+
+    @Override
+    public List<Campaign> findAllOpen() {
+        return campaignRepository.findAllByStatus(CampaignStatus.OPEN).stream()
+                .map(entity -> {
+                    Campaign campaign = entity.toCampaign();
+                    BusinessEntity business = entity.getBusiness();
+                    if (business != null) {
+                        campaign.setBusinessName(business.getName());
+                        campaign.setBusinessCategory(business.getCategory());
+                        campaign.setBusinessDescription(business.getDescription());
+                        campaign.setBusinessWebsite(business.getWebsite());
+                        campaign.setBusinessProvince(business.getProvince());
+                        campaign.setBusinessAddress(business.getAddress());
+                        campaign.setBusinessVerified(business.getVerified());
+                    }
+                    return campaign;
+                })
+                .toList();
+    }
 }
