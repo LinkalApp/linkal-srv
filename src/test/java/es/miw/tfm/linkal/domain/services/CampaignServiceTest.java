@@ -128,6 +128,51 @@ public class CampaignServiceTest {
     }
 
     // --------------------------------------------------------------------------
+    //  findAllOpen
+    // --------------------------------------------------------------------------
+
+    @Test
+    void findAllOpen_shouldDelegateToPersistence() {
+        when(campaignPersistence.findAllOpen()).thenReturn(List.of());
+
+        campaignService.findAllOpen();
+
+        verify(campaignPersistence).findAllOpen();
+    }
+
+    @Test
+    void findAllOpen_shouldReturnAllOpenCampaigns() {
+        List<Campaign> open = List.of(buildSavedCampaign(), buildSavedCampaign());
+        when(campaignPersistence.findAllOpen()).thenReturn(open);
+
+        List<Campaign> result = campaignService.findAllOpen();
+
+        assertEquals(2, result.size());
+    }
+
+    @Test
+    void findAllOpen_shouldReturnEmptyListWhenNoCampaigns() {
+        when(campaignPersistence.findAllOpen()).thenReturn(List.of());
+
+        List<Campaign> result = campaignService.findAllOpen();
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findAllOpen_shouldReturnCampaignsWithBusinessData() {
+        Campaign c = buildSavedCampaign();
+        c.setBusinessName("Mi Negocio");
+        c.setBusinessCategory("Moda y Ropa");
+        when(campaignPersistence.findAllOpen()).thenReturn(List.of(c));
+
+        List<Campaign> result = campaignService.findAllOpen();
+
+        assertEquals("Mi Negocio", result.get(0).getBusinessName());
+        assertEquals("Moda y Ropa", result.get(0).getBusinessCategory());
+    }
+
+    // --------------------------------------------------------------------------
     //  update
     // --------------------------------------------------------------------------
 
