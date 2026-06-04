@@ -10,6 +10,7 @@ public interface InfluencerPersistence {
     Influencer create(Influencer influencer);
     Influencer readMe(String email);
     List<Influencer> readAll();
+    List<Influencer> findByInterests(List<String> interests);
     Influencer updateMe (String email, Influencer influencer);
     void deleteMe(String email);
 }

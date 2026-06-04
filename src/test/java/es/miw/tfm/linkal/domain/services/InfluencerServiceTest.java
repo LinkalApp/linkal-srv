@@ -156,6 +156,64 @@ public class InfluencerServiceTest {
     }
 
     // -------------------------------------------------------------------------
+    //  findByInterests
+    // -------------------------------------------------------------------------
+
+    @Test
+    void findByInterests_shouldDelegateToPersistence() {
+        List<String> interests = List.of("Moda", "Belleza");
+        when(influencerPersistence.findByInterests(interests)).thenReturn(List.of());
+
+        influencerService.findByInterests(interests);
+
+        verify(influencerPersistence).findByInterests(interests);
+    }
+
+    @Test
+    void findByInterests_shouldReturnFilteredList() {
+        List<String> interests = List.of("Moda");
+        Influencer match = buildInfluencer("pass");
+        match.setInterests(List.of("Moda", "Lifestyle"));
+
+        when(influencerPersistence.findByInterests(interests)).thenReturn(List.of(match));
+
+        List<Influencer> result = influencerService.findByInterests(interests);
+
+        assertEquals(1, result.size());
+        assertTrue(result.get(0).getInterests().contains("Moda"));
+    }
+
+    @Test
+    void findByInterests_shouldReturnEmptyListWhenNoMatch() {
+        List<String> interests = List.of("Gaming");
+        when(influencerPersistence.findByInterests(interests)).thenReturn(List.of());
+
+        List<Influencer> result = influencerService.findByInterests(interests);
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findByInterests_withMultipleInterests_shouldDelegateAll() {
+        List<String> interests = List.of("Moda", "Belleza", "Viajes");
+        when(influencerPersistence.findByInterests(interests)).thenReturn(List.of());
+
+        influencerService.findByInterests(interests);
+
+        verify(influencerPersistence).findByInterests(interests);
+    }
+
+    @Test
+    void findByInterests_shouldNotCallReadAll() {
+        List<String> interests = List.of("Moda");
+        when(influencerPersistence.findByInterests(interests)).thenReturn(List.of());
+
+        influencerService.findByInterests(interests);
+
+        verify(influencerPersistence, never()).readAll();
+    }
+
+    // -------------------------------------------------------------------------
     //  updateMe
     // -------------------------------------------------------------------------
 

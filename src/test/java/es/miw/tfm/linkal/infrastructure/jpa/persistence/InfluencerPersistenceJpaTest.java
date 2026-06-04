@@ -129,6 +129,71 @@ class InfluencerPersistenceJpaTest {
     }
 
     // ------------------------------------------------------------------------
+    //  findByInterests
+    // -------------------------------------------------------------------------
+
+    @Test
+    void findByInterests_shouldCallRepositoryWithInterests() {
+        List<String> interests = List.of("Moda", "Belleza");
+        when(influencerRepository.findByInterestsIn(interests)).thenReturn(List.of());
+
+        influencerPersistenceJpa.findByInterests(interests);
+
+        verify(influencerRepository).findByInterestsIn(interests);
+    }
+
+    @Test
+    void findByInterests_shouldReturnMappedInfluencers() {
+        InfluencerEntity entity = buildInfluencerEntity(buildInfluencer());
+        entity.setInterests(new ArrayList<>(List.of("Moda", "Lifestyle")));
+        List<String> interests = List.of("Moda");
+
+        when(influencerRepository.findByInterestsIn(interests)).thenReturn(List.of(entity));
+
+        List<Influencer> result = influencerPersistenceJpa.findByInterests(interests);
+
+        assertEquals(1, result.size());
+        assertEquals("irene@test.com", result.get(0).getEmail());
+    }
+
+    @Test
+    void findByInterests_shouldReturnEmptyListWhenNoMatch() {
+        List<String> interests = List.of("Gaming");
+        when(influencerRepository.findByInterestsIn(interests)).thenReturn(List.of());
+
+        List<Influencer> result = influencerPersistenceJpa.findByInterests(interests);
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findByInterests_shouldReturnMultipleInfluencersWhenMultipleMatch() {
+        InfluencerEntity e1 = buildInfluencerEntity(buildInfluencer());
+        e1.setInterests(new ArrayList<>(List.of("Moda")));
+
+        InfluencerEntity e2 = buildInfluencerEntity(buildInfluencer());
+        e2.setEmail("otra@test.com");
+        e2.setInterests(new ArrayList<>(List.of("Belleza")));
+
+        List<String> interests = List.of("Moda", "Belleza");
+        when(influencerRepository.findByInterestsIn(interests)).thenReturn(List.of(e1, e2));
+
+        List<Influencer> result = influencerPersistenceJpa.findByInterests(interests);
+
+        assertEquals(2, result.size());
+    }
+
+    @Test
+    void findByInterests_shouldNotCallFindAll() {
+        List<String> interests = List.of("Moda");
+        when(influencerRepository.findByInterestsIn(interests)).thenReturn(List.of());
+
+        influencerPersistenceJpa.findByInterests(interests);
+
+        verify(influencerRepository, never()).findAll();
+    }
+
+    // ------------------------------------------------------------------------
     //  updateMe
     // -------------------------------------------------------------------------
 

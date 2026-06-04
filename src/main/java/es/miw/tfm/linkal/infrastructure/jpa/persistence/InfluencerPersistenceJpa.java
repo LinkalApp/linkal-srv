@@ -41,6 +41,13 @@ public class InfluencerPersistenceJpa implements InfluencerPersistence {
     }
 
     @Override
+    public List<Influencer> findByInterests(List<String> interests) {
+        return influencerRepository.findByInterestsIn(interests).stream()
+                .map(InfluencerEntity::toInfluencer)
+                .toList();
+    }
+
+    @Override
     public Influencer updateMe(String email, Influencer influencer) {
         InfluencerEntity entity = influencerRepository.findByEmail(email)
                 .orElseThrow(() -> new NotFoundException("Influencer not found: " + email));
