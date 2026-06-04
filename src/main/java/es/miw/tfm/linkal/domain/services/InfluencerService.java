@@ -32,6 +32,11 @@ public class InfluencerService {
         return influencerPersistence.readAll();
     }
 
+    public List<Influencer> findByInterests(List<String> interests) {
+        return influencerPersistence.findByInterests(interests);
+    }
+
+
     public Influencer updateMe(String email, Influencer influencer) {
         Influencer updated = influencerPersistence.updateMe(email, influencer);
         updated.setPassword(null);

@@ -9,6 +9,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Rest
@@ -31,8 +32,14 @@ public class InfluencerResource {
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<Influencer>> readAll() {
-        return ResponseEntity.ok(influencerService.readAll());
+    public ResponseEntity<List<Influencer>> readAll( @RequestParam(required = false) List<String> interests) {
+        List<Influencer> result = new ArrayList<>();
+        if(interests != null && !interests.isEmpty()){
+            result = influencerService.findByInterests(interests);
+        } else {
+            result = influencerService.readAll();
+        }
+        return ResponseEntity.ok(result);
     }
 
     @PutMapping("/me")
