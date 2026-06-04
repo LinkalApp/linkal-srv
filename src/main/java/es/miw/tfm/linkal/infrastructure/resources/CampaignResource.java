@@ -9,6 +9,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 
@@ -44,7 +46,16 @@ public class CampaignResource {
 
     @GetMapping("/open")
     @PreAuthorize("hasRole('INFLUENCER')")
-    public ResponseEntity<java.util.List<Campaign>> findAllOpen() {
-        return ResponseEntity.ok(campaignService.findAllOpen());
+    public ResponseEntity<java.util.List<Campaign>> findAllOpen( @RequestParam(required = false) String category,
+                                                                 @RequestParam(required = false) String province) {
+        boolean hasFilter = (category != null && !category.isBlank())
+                || (province != null && !province.isBlank());
+        List<Campaign> result = new ArrayList<>();
+        if (hasFilter) {
+            result = campaignService.findOpenByFilters(category, province);
+        } else {
+            result = campaignService.findAllOpen();
+        }
+        return ResponseEntity.ok(result);
     }
 }
