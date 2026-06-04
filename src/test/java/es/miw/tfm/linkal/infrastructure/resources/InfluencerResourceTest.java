@@ -165,8 +165,74 @@ class InfluencerResourceTest {
     }
 
     @Test
+    @WithMockUser
+    void readAll_withoutInterestsParam_shouldCallReadAll() throws Exception {
+        when(influencerService.readAll()).thenReturn(List.of(buildInfluencer()));
+
+        mockMvc.perform(get("/api/influencers"))
+                .andExpect(status().isOk());
+
+        verify(influencerService).readAll();
+        verify(influencerService, never()).findByInterests(any());
+    }
+
+    @Test
+    @WithMockUser
+    void readAll_withInterestsParam_shouldReturnFilteredList() throws Exception {
+        Influencer filtered = buildInfluencer();
+        filtered.setArtisticName("LauraStyle");
+        when(influencerService.findByInterests(List.of("Moda"))).thenReturn(List.of(filtered));
+
+        mockMvc.perform(get("/api/influencers").param("interests", "Moda"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].artisticName").value("LauraStyle"));
+    }
+
+    @Test
+    @WithMockUser
+    void readAll_withInterestsParam_shouldCallFindByInterests() throws Exception {
+        when(influencerService.findByInterests(any())).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/influencers").param("interests", "Moda"))
+                .andExpect(status().isOk());
+
+        verify(influencerService).findByInterests(List.of("Moda"));
+        verify(influencerService, never()).readAll();
+    }
+
+    @Test
+    @WithMockUser
+    void readAll_withMultipleInterests_shouldPassThemToService() throws Exception {
+        when(influencerService.findByInterests(any())).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/influencers")
+                        .param("interests", "Moda")
+                        .param("interests", "Belleza"))
+                .andExpect(status().isOk());
+
+        verify(influencerService).findByInterests(List.of("Moda", "Belleza"));
+    }
+
+    @Test
+    @WithMockUser
+    void readAll_withInterestsParam_shouldReturnEmptyListWhenNoMatch() throws Exception {
+        when(influencerService.findByInterests(any())).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/influencers").param("interests", "Gaming"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
     void readAll_shouldReturn401WhenNotAuthenticated() throws Exception {
         mockMvc.perform(get("/api/influencers"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void readAll_withInterestsParam_shouldReturn401WhenNotAuthenticated() throws Exception {
+        mockMvc.perform(get("/api/influencers").param("interests", "Moda"))
                 .andExpect(status().isUnauthorized());
     }
 
