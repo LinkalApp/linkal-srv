@@ -171,6 +171,89 @@ public class CampaignResourceTest {
     }
 
     // -------------------------------------------------------------------------
+    //  GET /api/campaigns/open?category=&province= — filtro
+    // -------------------------------------------------------------------------
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void findAllOpen_withCategoryParam_shouldCallFindOpenByFilters() throws Exception {
+        Campaign c = buildOpenCampaign();
+        when(campaignService.findOpenByFilters(eq("Tecnología"), isNull())).thenReturn(java.util.List.of(c));
+
+        mockMvc.perform(get("/api/campaigns/open").param("category", "Tecnología"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].businessCategory").value("Tecnología"));
+
+        verify(campaignService).findOpenByFilters(eq("Tecnología"), isNull());
+        verify(campaignService, never()).findAllOpen();
+    }
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void findAllOpen_withProvinceParam_shouldCallFindOpenByFilters() throws Exception {
+        Campaign c = buildOpenCampaign();
+        c.setBusinessProvince("Barcelona");
+        when(campaignService.findOpenByFilters(isNull(), eq("Barcelona"))).thenReturn(java.util.List.of(c));
+
+        mockMvc.perform(get("/api/campaigns/open").param("province", "Barcelona"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].businessProvince").value("Barcelona"));
+
+        verify(campaignService).findOpenByFilters(isNull(), eq("Barcelona"));
+    }
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void findAllOpen_withBothParams_shouldCallFindOpenByFilters() throws Exception {
+        when(campaignService.findOpenByFilters(eq("Tecnología"), eq("Madrid")))
+                .thenReturn(java.util.List.of(buildOpenCampaign()));
+
+        mockMvc.perform(get("/api/campaigns/open")
+                        .param("category", "Tecnología")
+                        .param("province", "Madrid"))
+                .andExpect(status().isOk());
+
+        verify(campaignService).findOpenByFilters(eq("Tecnología"), eq("Madrid"));
+        verify(campaignService, never()).findAllOpen();
+    }
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void findAllOpen_withoutParams_shouldCallFindAllOpen() throws Exception {
+        when(campaignService.findAllOpen()).thenReturn(java.util.List.of(buildOpenCampaign()));
+
+        mockMvc.perform(get("/api/campaigns/open"))
+                .andExpect(status().isOk());
+
+        verify(campaignService).findAllOpen();
+        verify(campaignService, never()).findOpenByFilters(any(), any());
+    }
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void findAllOpen_withOtrasCategory_shouldCallFindOpenByFiltersWithOtras() throws Exception {
+        Campaign c = buildOpenCampaign();
+        c.setBusinessCategory("Yoga y Meditación");
+        when(campaignService.findOpenByFilters(eq("Otras"), isNull())).thenReturn(java.util.List.of(c));
+
+        mockMvc.perform(get("/api/campaigns/open").param("category", "Otras"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].businessCategory").value("Yoga y Meditación"));
+
+        verify(campaignService).findOpenByFilters(eq("Otras"), isNull());
+    }
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void findAllOpen_withFilterReturnsEmpty_shouldReturn200WithEmptyList() throws Exception {
+        when(campaignService.findOpenByFilters(any(), any())).thenReturn(java.util.List.of());
+
+        mockMvc.perform(get("/api/campaigns/open").param("category", "Gaming"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+    }
+
+    // -------------------------------------------------------------------------
     //  PUT /api/campaigns/{id} — actualizar campaña
     // --------------------------------------------------------------------------
 

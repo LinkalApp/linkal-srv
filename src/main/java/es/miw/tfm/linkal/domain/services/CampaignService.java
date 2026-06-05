@@ -21,8 +21,9 @@ public class CampaignService {
     public List<Campaign> findByBusinessId(UUID businessId) {
         return campaignPersistence.findByBusinessId(businessId);
     }
-    public List<Campaign> findAllOpen() {
-        return campaignPersistence.findAllOpen();
+    public List<Campaign> findAllOpen() { return campaignPersistence.findAllOpen(); }
+    public List<Campaign> findOpenByFilters(String category, String province) {
+        return campaignPersistence.findOpenByFilters(category, province);
     }
 
     public Campaign update(UUID id, Campaign campaign, String businessEmail) {

@@ -173,6 +173,81 @@ public class CampaignServiceTest {
     }
 
     // --------------------------------------------------------------------------
+    //  findOpenByFilters
+    // --------------------------------------------------------------------------
+
+    @Test
+    void findOpenByFilters_shouldDelegateToPersistence() {
+        when(campaignPersistence.findOpenByFilters("Tecnología", "Madrid")).thenReturn(List.of());
+
+        campaignService.findOpenByFilters("Tecnología", "Madrid");
+
+        verify(campaignPersistence).findOpenByFilters("Tecnología", "Madrid");
+    }
+
+    @Test
+    void findOpenByFilters_shouldReturnFilteredCampaigns() {
+        Campaign c = buildSavedCampaign();
+        c.setBusinessCategory("Tecnología");
+        c.setBusinessProvince("Madrid");
+        when(campaignPersistence.findOpenByFilters("Tecnología", "Madrid")).thenReturn(List.of(c));
+
+        List<Campaign> result = campaignService.findOpenByFilters("Tecnología", "Madrid");
+
+        assertEquals(1, result.size());
+        assertEquals("Tecnología", result.get(0).getBusinessCategory());
+        assertEquals("Madrid", result.get(0).getBusinessProvince());
+    }
+
+    @Test
+    void findOpenByFilters_withOnlyCategory_shouldDelegate() {
+        when(campaignPersistence.findOpenByFilters("Moda y Ropa", null)).thenReturn(List.of());
+
+        campaignService.findOpenByFilters("Moda y Ropa", null);
+
+        verify(campaignPersistence).findOpenByFilters("Moda y Ropa", null);
+    }
+
+    @Test
+    void findOpenByFilters_withOnlyProvince_shouldDelegate() {
+        when(campaignPersistence.findOpenByFilters(null, "Barcelona")).thenReturn(List.of());
+
+        campaignService.findOpenByFilters(null, "Barcelona");
+
+        verify(campaignPersistence).findOpenByFilters(null, "Barcelona");
+    }
+
+    @Test
+    void findOpenByFilters_withOtras_shouldDelegate() {
+        Campaign c = buildSavedCampaign();
+        c.setBusinessCategory("Yoga y Meditación");
+        when(campaignPersistence.findOpenByFilters("Otras", null)).thenReturn(List.of(c));
+
+        List<Campaign> result = campaignService.findOpenByFilters("Otras", null);
+
+        assertEquals(1, result.size());
+        verify(campaignPersistence).findOpenByFilters("Otras", null);
+    }
+
+    @Test
+    void findOpenByFilters_shouldReturnEmptyListWhenNoMatch() {
+        when(campaignPersistence.findOpenByFilters("Gaming", "Sevilla")).thenReturn(List.of());
+
+        List<Campaign> result = campaignService.findOpenByFilters("Gaming", "Sevilla");
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findOpenByFilters_shouldNotCallFindAllOpen() {
+        when(campaignPersistence.findOpenByFilters(any(), any())).thenReturn(List.of());
+
+        campaignService.findOpenByFilters("Tecnología", "Madrid");
+
+        verify(campaignPersistence, never()).findAllOpen();
+    }
+
+    // --------------------------------------------------------------------------
     //  update
     // --------------------------------------------------------------------------
 

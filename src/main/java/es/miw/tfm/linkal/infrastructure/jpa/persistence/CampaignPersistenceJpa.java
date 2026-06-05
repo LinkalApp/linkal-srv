@@ -4,6 +4,7 @@ import es.miw.tfm.linkal.domain.exceptions.ForbiddenException;
 import es.miw.tfm.linkal.domain.exceptions.NotFoundException;
 import es.miw.tfm.linkal.domain.model.Business;
 import es.miw.tfm.linkal.domain.model.Campaign;
+import es.miw.tfm.linkal.domain.model.enums.BusinessCategory;
 import es.miw.tfm.linkal.domain.model.enums.CampaignStatus;
 import es.miw.tfm.linkal.domain.persistence.CampaignPersistence;
 import es.miw.tfm.linkal.infrastructure.jpa.entities.BusinessEntity;
@@ -83,7 +84,22 @@ public class CampaignPersistenceJpa implements CampaignPersistence {
 
     @Override
     public List<Campaign> findAllOpen() {
-        return campaignRepository.findAllByStatus(CampaignStatus.OPEN).stream()
+        return enrich(campaignRepository.findAllByStatus(CampaignStatus.OPEN));
+    }
+
+    @Override
+    public List<Campaign> findOpenByFilters(String category, String province) {
+        String cat  = (category != null && !category.isBlank()) ? category : null;
+        String prov = (province != null && !province.isBlank()) ? province : null;
+
+        if (BusinessCategory.OTHER.equals(cat)) {
+            return enrich(campaignRepository.findOpenByOtherCategories(BusinessCategory.STANDARD, prov));
+        }
+        return enrich(campaignRepository.findOpenByFilters(cat, prov));
+    }
+
+    private List<Campaign> enrich(List<CampaignEntity> entities) {
+        return entities.stream()
                 .map(entity -> {
                     Campaign campaign = entity.toCampaign();
                     BusinessEntity business = entity.getBusiness();

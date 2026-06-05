@@ -252,6 +252,101 @@ public class CampaignPersistenceJpaTest {
         verify(campaignRepository, never()).findAllByBusinessId(any());
     }
 
+    // -------------------------------------------------------------------------
+    //  findOpenByFilters
+    // --------------------------------------------------------------------------
+
+    @Test
+    void findOpenByFilters_withCategoryAndProvince_shouldCallRepository() {
+        when(campaignRepository.findOpenByFilters("Tecnología", "Madrid")).thenReturn(List.of());
+
+        campaignPersistenceJpa.findOpenByFilters("Tecnología", "Madrid");
+
+        verify(campaignRepository).findOpenByFilters("Tecnología", "Madrid");
+    }
+
+    @Test
+    void findOpenByFilters_withBlankCategory_shouldPassNullToRepository() {
+        when(campaignRepository.findOpenByFilters(null, "Madrid")).thenReturn(List.of());
+
+        campaignPersistenceJpa.findOpenByFilters("", "Madrid");
+
+        verify(campaignRepository).findOpenByFilters(null, "Madrid");
+    }
+
+    @Test
+    void findOpenByFilters_withBlankProvince_shouldPassNullToRepository() {
+        when(campaignRepository.findOpenByFilters("Tecnología", null)).thenReturn(List.of());
+
+        campaignPersistenceJpa.findOpenByFilters("Tecnología", "");
+
+        verify(campaignRepository).findOpenByFilters("Tecnología", null);
+    }
+
+    @Test
+    void findOpenByFilters_shouldEnrichWithBusinessData() {
+        BusinessEntity business = buildBusinessEntity();
+        business.setCategory("Tecnología");
+        business.setProvince("Madrid");
+        CampaignEntity entity = buildCampaignEntity(business);
+
+        when(campaignRepository.findOpenByFilters("Tecnología", "Madrid")).thenReturn(List.of(entity));
+
+        List<Campaign> result = campaignPersistenceJpa.findOpenByFilters("Tecnología", "Madrid");
+
+        assertEquals(1, result.size());
+        assertEquals("Tecnología", result.get(0).getBusinessCategory());
+        assertEquals("Madrid", result.get(0).getBusinessProvince());
+    }
+
+    @Test
+    void findOpenByFilters_withOtras_shouldCallFindOpenByOtherCategories() {
+        when(campaignRepository.findOpenByOtherCategories(any(), eq(null))).thenReturn(List.of());
+
+        campaignPersistenceJpa.findOpenByFilters("Otra", null);
+
+        verify(campaignRepository).findOpenByOtherCategories(any(), eq(null));
+        verify(campaignRepository, never()).findOpenByFilters(any(), any());
+    }
+
+    @Test
+    void findOpenByFilters_withOtrasAndProvince_shouldPassProvinceToOtherQuery() {
+        BusinessEntity business = buildBusinessEntity();
+        business.setCategory("Yoga y Meditación");
+        business.setProvince("Barcelona");
+        CampaignEntity entity = buildCampaignEntity(business);
+
+        when(campaignRepository.findOpenByOtherCategories(any(), eq("Barcelona"))).thenReturn(List.of(entity));
+
+        List<Campaign> result = campaignPersistenceJpa.findOpenByFilters("Otra", "Barcelona");
+
+        assertEquals(1, result.size());
+        assertEquals("Yoga y Meditación", result.get(0).getBusinessCategory());
+        verify(campaignRepository).findOpenByOtherCategories(any(), eq("Barcelona"));
+    }
+
+    @Test
+    void findOpenByFilters_withOtras_shouldNotIncludeStandardCategories() {
+        BusinessEntity business = buildBusinessEntity();
+        business.setCategory("Yoga y Meditación");
+        CampaignEntity entity = buildCampaignEntity(business);
+
+        when(campaignRepository.findOpenByOtherCategories(any(), any())).thenReturn(List.of(entity));
+
+        List<Campaign> result = campaignPersistenceJpa.findOpenByFilters("Otra", null);
+
+        assertEquals("Yoga y Meditación", result.get(0).getBusinessCategory());
+    }
+
+    @Test
+    void findOpenByFilters_shouldReturnEmptyListWhenNoMatch() {
+        when(campaignRepository.findOpenByFilters("Gaming", "Sevilla")).thenReturn(List.of());
+
+        List<Campaign> result = campaignPersistenceJpa.findOpenByFilters("Gaming", "Sevilla");
+
+        assertTrue(result.isEmpty());
+    }
+
     // ------------------------------------------------------------------------
     //  update
     // -------------------------------------------------------------------------
