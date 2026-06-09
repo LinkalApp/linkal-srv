@@ -33,16 +33,42 @@ public class MatchEntityTest {
     }
 
     @Test
-    void toMatch_shouldMapStatus() {
+    void toMatch_shouldMapStatusPending() {
+        MatchEntity entity = MatchEntity.builder()
+                .id(UUID.randomUUID())
+                .createdAt(LocalDateTime.now())
+                .status(MatchStatus.PENDING)
+                .build();
+
+        assertEquals(MatchStatus.PENDING, entity.toMatch().getStatus());
+    }
+
+    @Test
+    void toMatch_shouldMapStatusCompleted() {
+        LocalDateTime matchedAt = LocalDateTime.now();
+
         MatchEntity entity = MatchEntity.builder()
                 .id(UUID.randomUUID())
                 .createdAt(LocalDateTime.now())
                 .status(MatchStatus.COMPLETED)
+                .matchedAt(matchedAt)
                 .build();
 
         Match match = entity.toMatch();
 
         assertEquals(MatchStatus.COMPLETED, match.getStatus());
+        assertEquals(matchedAt, match.getMatchedAt());
+    }
+
+    @Test
+    void toMatch_shouldLeaveMatchedAtNull_whenNotCompleted() {
+        MatchEntity entity = MatchEntity.builder()
+                .id(UUID.randomUUID())
+                .createdAt(LocalDateTime.now())
+                .status(MatchStatus.PENDING)
+                .build();
+
+        assertNull(entity.toMatch().getMatchedAt());
     }
 
     @Test
@@ -58,9 +84,7 @@ public class MatchEntityTest {
                 .campaign(campaign)
                 .build();
 
-        Match match = entity.toMatch();
-
-        assertEquals(campaignId, match.getCampaignId());
+        assertEquals(campaignId, entity.toMatch().getCampaignId());
     }
 
     @Test
@@ -71,9 +95,7 @@ public class MatchEntityTest {
                 .status(MatchStatus.PENDING)
                 .build();
 
-        Match match = entity.toMatch();
-
-        assertNull(match.getCampaignId());
+        assertNull(entity.toMatch().getCampaignId());
     }
 
     @Test
@@ -89,9 +111,7 @@ public class MatchEntityTest {
                 .influencer(influencer)
                 .build();
 
-        Match match = entity.toMatch();
-
-        assertEquals(influencerId, match.getInfluencerId());
+        assertEquals(influencerId, entity.toMatch().getInfluencerId());
     }
 
     @Test
@@ -102,10 +122,37 @@ public class MatchEntityTest {
                 .status(MatchStatus.PENDING)
                 .build();
 
-        Match match = entity.toMatch();
-
-        assertNull(match.getInfluencerId());
+        assertNull(entity.toMatch().getInfluencerId());
     }
+
+    @Test
+    void toMatch_shouldMapBusinessId_whenSet() {
+        UUID businessId = UUID.randomUUID();
+
+        MatchEntity entity = MatchEntity.builder()
+                .id(UUID.randomUUID())
+                .createdAt(LocalDateTime.now())
+                .status(MatchStatus.PENDING)
+                .businessId(businessId)
+                .build();
+
+        assertEquals(businessId, entity.toMatch().getBusinessId());
+    }
+
+    @Test
+    void toMatch_shouldLeaveBusinessIdNull_whenNotSet() {
+        MatchEntity entity = MatchEntity.builder()
+                .id(UUID.randomUUID())
+                .createdAt(LocalDateTime.now())
+                .status(MatchStatus.PENDING)
+                .build();
+
+        assertNull(entity.toMatch().getBusinessId());
+    }
+
+    // -------------------------------------------------------------------------
+    //  toMatch() — nueva instancia en cada llamada
+    // -------------------------------------------------------------------------
 
     @Test
     void toMatch_shouldReturnNewInstanceEachTime() {
@@ -115,9 +162,20 @@ public class MatchEntityTest {
                 .status(MatchStatus.PENDING)
                 .build();
 
-        Match m1 = entity.toMatch();
-        Match m2 = entity.toMatch();
+        assertNotSame(entity.toMatch(), entity.toMatch());
+    }
 
-        assertNotSame(m1, m2);
+    // -------------------------------------------------------------------------
+    // Builder por defecto
+    // -------------------------------------------------------------------------
+
+    @Test
+    void builder_shouldDefaultStatusToPending() {
+        MatchEntity entity = MatchEntity.builder()
+                .id(UUID.randomUUID())
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        assertEquals(MatchStatus.PENDING, entity.getStatus());
     }
 }
