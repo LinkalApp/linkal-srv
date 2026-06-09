@@ -18,7 +18,9 @@ import java.util.UUID;
 public class Match {
     private UUID id;
     private LocalDateTime createdAt;
+    private LocalDateTime matchedAt;
     private MatchStatus status;
     private UUID campaignId;
     private UUID influencerId;
+    private UUID businessId;
 }
