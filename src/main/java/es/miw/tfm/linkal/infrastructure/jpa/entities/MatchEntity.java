@@ -30,6 +30,9 @@ public class MatchEntity {
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
+    @Column
+    private LocalDateTime matchedAt;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
@@ -40,8 +43,11 @@ public class MatchEntity {
     private CampaignEntity campaign;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "influencer_id", nullable = false)
+    @JoinColumn(name = "influencer_id")
     private InfluencerEntity influencer;
+
+    @Column(columnDefinition = "uuid")
+    private UUID businessId;
 
     @OneToMany(mappedBy = "match", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
