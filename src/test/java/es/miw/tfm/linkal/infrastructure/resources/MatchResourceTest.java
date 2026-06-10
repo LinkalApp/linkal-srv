@@ -3,6 +3,7 @@ package es.miw.tfm.linkal.infrastructure.resources;
 import es.miw.tfm.linkal.configuration.JwtService;
 import es.miw.tfm.linkal.configuration.SecurityConfiguration;
 import es.miw.tfm.linkal.domain.exceptions.ConflictException;
+import es.miw.tfm.linkal.domain.exceptions.ForbiddenException;
 import es.miw.tfm.linkal.domain.exceptions.NotFoundException;
 import es.miw.tfm.linkal.domain.model.Match;
 import es.miw.tfm.linkal.domain.model.enums.MatchStatus;
@@ -104,6 +105,87 @@ public class MatchResourceTest {
                 .thenThrow(new NotFoundException("Campaign not found: " + campaignId));
 
         mockMvc.perform(post("/api/matches/campaigns/" + campaignId).with(csrf()))
+                .andExpect(status().isNotFound());
+    }
+
+    // ------------------------------------------------------------------------
+    //  POST /api/matches/influencers/{influencerId}/campaigns/{campaignId}
+    // --------------------------------------------------------------------------
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void createByBusiness_shouldReturn201WithPendingMatch() throws Exception {
+        UUID influencerId = UUID.randomUUID();
+        UUID campaignId   = UUID.randomUUID();
+        when(matchService.createByBusiness(eq(influencerId), eq(campaignId), eq("business@test.com")))
+                .thenReturn(buildPendingMatch(campaignId));
+
+        mockMvc.perform(post("/api/matches/influencers/{iId}/campaigns/{cId}", influencerId, campaignId)
+                        .with(csrf()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("PENDING"));
+    }
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void createByBusiness_shouldReturn201WithCompletedMatch_whenMutual() throws Exception {
+        UUID influencerId = UUID.randomUUID();
+        UUID campaignId   = UUID.randomUUID();
+        when(matchService.createByBusiness(eq(influencerId), eq(campaignId), eq("business@test.com")))
+                .thenReturn(buildCompletedMatch(campaignId));
+
+        mockMvc.perform(post("/api/matches/influencers/{iId}/campaigns/{cId}", influencerId, campaignId)
+                        .with(csrf()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.matchedAt").exists());
+    }
+
+    @Test
+    void createByBusiness_shouldReturn401_whenNotAuthenticated() throws Exception {
+        mockMvc.perform(post("/api/matches/influencers/{iId}/campaigns/{cId}",
+                        UUID.randomUUID(), UUID.randomUUID()).with(csrf()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(roles = "INFLUENCER")
+    void createByBusiness_shouldReturn403_whenNotBusiness() throws Exception {
+        mockMvc.perform(post("/api/matches/influencers/{iId}/campaigns/{cId}",
+                        UUID.randomUUID(), UUID.randomUUID()).with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void createByBusiness_shouldReturn409_whenDuplicate() throws Exception {
+        when(matchService.createByBusiness(any(), any(), any()))
+                .thenThrow(new ConflictException("Ya has propuesto una colaboración"));
+
+        mockMvc.perform(post("/api/matches/influencers/{iId}/campaigns/{cId}",
+                        UUID.randomUUID(), UUID.randomUUID()).with(csrf()))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void createByBusiness_shouldReturn403_whenCampaignNotOwned() throws Exception {
+        when(matchService.createByBusiness(any(), any(), any()))
+                .thenThrow(new ForbiddenException("No tienes permiso para crear un match con esta campaña"));
+
+        mockMvc.perform(post("/api/matches/influencers/{iId}/campaigns/{cId}",
+                        UUID.randomUUID(), UUID.randomUUID()).with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void createByBusiness_shouldReturn404_whenInfluencerNotFound() throws Exception {
+        when(matchService.createByBusiness(any(), any(), any()))
+                .thenThrow(new NotFoundException("Influencer not found"));
+
+        mockMvc.perform(post("/api/matches/influencers/{iId}/campaigns/{cId}",
+                        UUID.randomUUID(), UUID.randomUUID()).with(csrf()))
                 .andExpect(status().isNotFound());
     }
 
