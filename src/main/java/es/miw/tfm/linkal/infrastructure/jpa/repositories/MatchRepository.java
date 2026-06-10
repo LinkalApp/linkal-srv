@@ -8,5 +8,4 @@ import java.util.UUID;
 
 public interface MatchRepository extends JpaRepository<MatchEntity, UUID> {
     Optional<MatchEntity> findByCampaign_IdAndInfluencer_Id(UUID campaignId, UUID influencerId);
-    Optional<MatchEntity> findByCampaign_IdAndInfluencerIsNull(UUID campaignId);
 }

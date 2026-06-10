@@ -10,4 +10,5 @@ import java.util.UUID;
 public interface MatchPersistence {
     Match createByInfluencer(UUID campaignId, String influencerEmail);
     Optional<Match> findByInfluencer(UUID campaignId, String influencerEmail);
+    Match createByBusiness(UUID influencerId, UUID campaignId, String businessEmail);
 }
