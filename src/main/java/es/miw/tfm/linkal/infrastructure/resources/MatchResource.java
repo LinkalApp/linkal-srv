@@ -26,6 +26,15 @@ public class MatchResource {
                 .body(matchService.createByInfluencer(campaignId, authentication.getName()));
     }
 
+    @PostMapping("/influencers/{influencerId}/campaigns/{campaignId}")
+    @PreAuthorize("hasRole('BUSINESS')")
+    public ResponseEntity<Match> createByBusiness(@PathVariable UUID influencerId,
+                                                  @PathVariable UUID campaignId,
+                                                  Authentication authentication) {
+        return ResponseEntity.status(201)
+                .body(matchService.createByBusiness(influencerId, campaignId, authentication.getName()));
+    }
+
     @GetMapping("/campaigns/{campaignId}/influencer")
     @PreAuthorize("hasRole('INFLUENCER')")
     public ResponseEntity<Match> findByInfluencer(@PathVariable UUID campaignId,

@@ -20,4 +20,8 @@ public class MatchService {
     public Optional<Match> findByInfluencer(UUID campaignId, String influencerEmail) {
         return matchPersistence.findByInfluencer(campaignId, influencerEmail);
     }
+
+    public Match createByBusiness(UUID influencerId, UUID campaignId, String businessEmail) {
+        return matchPersistence.createByBusiness(influencerId, campaignId, businessEmail);
+    }
 }

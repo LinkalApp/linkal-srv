@@ -77,6 +77,73 @@ public class MatchServiceTest {
         verify(matchPersistence).createByInfluencer(campaignId, "otro@influencer.com");
     }
 
+    // -------------------------------------------------------------------------
+    //  createByBusiness
+    // --------------------------------------------------------------------------
+
+    @Test
+    void createByBusiness_shouldDelegateToPersistence() {
+        UUID influencerId = UUID.randomUUID();
+        UUID campaignId   = UUID.randomUUID();
+        Match match = buildPendingMatch(campaignId);
+
+        when(matchPersistence.createByBusiness(influencerId, campaignId, "business@test.com")).thenReturn(match);
+
+        matchService.createByBusiness(influencerId, campaignId, "business@test.com");
+
+        verify(matchPersistence).createByBusiness(influencerId, campaignId, "business@test.com");
+    }
+
+    @Test
+    void createByBusiness_shouldReturnPendingMatch() {
+        UUID influencerId = UUID.randomUUID();
+        UUID campaignId   = UUID.randomUUID();
+        Match match = buildPendingMatch(campaignId);
+
+        when(matchPersistence.createByBusiness(influencerId, campaignId, "business@test.com")).thenReturn(match);
+
+        Match result = matchService.createByBusiness(influencerId, campaignId, "business@test.com");
+
+        assertNotNull(result);
+        assertEquals(MatchStatus.PENDING, result.getStatus());
+    }
+
+    @Test
+    void createByBusiness_shouldReturnCompletedMatchWhenMutual() {
+        UUID influencerId = UUID.randomUUID();
+        UUID campaignId   = UUID.randomUUID();
+        Match completed = buildCompletedMatch(campaignId);
+
+        when(matchPersistence.createByBusiness(influencerId, campaignId, "business@test.com")).thenReturn(completed);
+
+        Match result = matchService.createByBusiness(influencerId, campaignId, "business@test.com");
+
+        assertEquals(MatchStatus.COMPLETED, result.getStatus());
+        assertNotNull(result.getMatchedAt());
+    }
+
+    @Test
+    void createByBusiness_shouldPassExactParamsToPersistence() {
+        UUID influencerId = UUID.randomUUID();
+        UUID campaignId   = UUID.randomUUID();
+        when(matchPersistence.createByBusiness(any(), any(), any())).thenReturn(buildPendingMatch(campaignId));
+
+        matchService.createByBusiness(influencerId, campaignId, "otro@comercio.com");
+
+        verify(matchPersistence).createByBusiness(influencerId, campaignId, "otro@comercio.com");
+    }
+
+    @Test
+    void createByBusiness_shouldNotCallCreateByInfluencer() {
+        UUID influencerId = UUID.randomUUID();
+        UUID campaignId   = UUID.randomUUID();
+        when(matchPersistence.createByBusiness(any(), any(), any())).thenReturn(buildPendingMatch(campaignId));
+
+        matchService.createByBusiness(influencerId, campaignId, "business@test.com");
+
+        verify(matchPersistence, never()).createByInfluencer(any(), any());
+    }
+
     // ------------------------------------------------------------------------
     //  findByInfluencer
     // -------------------------------------------------------------------------
