@@ -23,4 +23,22 @@ public class Match {
     private UUID campaignId;
     private UUID influencerId;
     private UUID businessId;
+
+    // Campos enriquecidos — campaña
+    private String campaignTitle;
+    private String campaignDescription;
+    private String campaignObjective;
+    private String campaignRequirements;
+    private String campaignReward;
+    private String campaignStatus;
+    private String campaignCreationDate;
+    // Campos enriquecidos — negocio
+    private String businessName;
+    private String businessCategory;
+    private String businessDescription;
+    private String businessWebsite;
+    private String businessProvince;
+    private String businessAddress;
+    private Boolean businessVerified;
+
 }
