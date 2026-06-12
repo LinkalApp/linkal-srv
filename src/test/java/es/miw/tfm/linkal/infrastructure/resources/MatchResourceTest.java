@@ -17,6 +17,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -243,6 +244,79 @@ public class MatchResourceTest {
     void findByInfluencer_shouldReturn403_whenNotInfluencer() throws Exception {
         mockMvc.perform(get("/api/matches/campaigns/" + UUID.randomUUID() + "/influencer"))
                 .andExpect(status().isForbidden());
+    }
+
+    // --------------------------------------------------------------------------
+    //  GET /api/matches/pending  (INFLUENCER)
+    // --------------------------------------------------------------------------
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void findPending_influencer_shouldReturn200WithEmptyList() throws Exception {
+        when(matchService.findPendingByInfluencer("influencer@test.com")).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/matches/pending"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void findPending_influencer_shouldReturn200WithMatches() throws Exception {
+        UUID campaignId = UUID.randomUUID();
+        when(matchService.findPendingByInfluencer("influencer@test.com"))
+                .thenReturn(List.of(buildPendingMatch(campaignId)));
+
+        mockMvc.perform(get("/api/matches/pending"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].status").value("PENDING"));
+    }
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void findPending_influencer_shouldReturn200WithMultipleMatches() throws Exception {
+        when(matchService.findPendingByInfluencer("influencer@test.com"))
+                .thenReturn(List.of(buildPendingMatch(UUID.randomUUID()), buildPendingMatch(UUID.randomUUID())));
+
+        mockMvc.perform(get("/api/matches/pending"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2));
+    }
+
+    // -------------------------------------------------------------------------
+    //  GET /api/matches/pending  (BUSINESS)
+    // -------------------------------------------------------------------------
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void findPending_business_shouldReturn200WithEmptyList() throws Exception {
+        when(matchService.findPendingByBusiness("business@test.com")).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/matches/pending"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void findPending_business_shouldReturn200WithMatches() throws Exception {
+        UUID campaignId = UUID.randomUUID();
+        when(matchService.findPendingByBusiness("business@test.com"))
+                .thenReturn(List.of(buildPendingMatch(campaignId)));
+
+        mockMvc.perform(get("/api/matches/pending"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].status").value("PENDING"));
+    }
+
+    @Test
+    void findPending_shouldReturn401_whenNotAuthenticated() throws Exception {
+        mockMvc.perform(get("/api/matches/pending"))
+                .andExpect(status().isUnauthorized());
     }
 
     // -------------------------------------------------------------------------
