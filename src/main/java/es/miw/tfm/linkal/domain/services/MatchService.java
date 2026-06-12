@@ -29,4 +29,8 @@ public class MatchService {
     public List<Match> findPendingByInfluencer(String influencerEmail) {
         return matchPersistence.findPendingByInfluencer(influencerEmail);
     }
+
+    public List<Match> findPendingByBusiness(String businessEmail) {
+        return matchPersistence.findPendingByBusiness(businessEmail);
+    }
 }

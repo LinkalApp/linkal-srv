@@ -46,9 +46,13 @@ public class MatchResource {
     }
 
     @GetMapping("/pending")
-    @PreAuthorize("hasRole('INFLUENCER')")
+    @PreAuthorize("hasAnyRole('INFLUENCER','BUSINESS')")
     public ResponseEntity<List<Match>> findPending(Authentication authentication) {
-        List<Match> result = matchService.findPendingByInfluencer(authentication.getName());
+        boolean isBusiness = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_BUSINESS"));
+        List<Match> result = isBusiness
+                ? matchService.findPendingByBusiness(authentication.getName())
+                : matchService.findPendingByInfluencer(authentication.getName());
         return ResponseEntity.ok(result);
     }
 }

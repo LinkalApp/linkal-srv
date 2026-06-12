@@ -10,5 +10,7 @@ import java.util.List;
 
 public interface MatchRepository extends JpaRepository<MatchEntity, UUID> {
     Optional<MatchEntity> findByCampaign_IdAndInfluencer_Id(UUID campaignId, UUID influencerId);
-    List<MatchEntity> findByInfluencer_IdAndStatusAndBusinessIdIsNull(UUID influencerId, MatchStatus status);
+    List<MatchEntity> findPendingByInfluencer(UUID influencerId, MatchStatus status);
+    List<MatchEntity> findPendingByBusiness(UUID businessId, MatchStatus status);
+
 }

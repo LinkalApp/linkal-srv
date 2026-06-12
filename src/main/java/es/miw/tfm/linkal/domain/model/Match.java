@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -40,5 +41,14 @@ public class Match {
     private String businessProvince;
     private String businessAddress;
     private Boolean businessVerified;
-
+    // Campos enriquecidos — influencer
+    private String       influencerName;
+    private String       influencerArtisticName;
+    private String       influencerDescription;
+    private String       influencerEmail;
+    private String       influencerInstagram;
+    private String       influencerTiktok;
+    private String       influencerYoutube;
+    private Boolean      influencerVerified;
+    private List<String> influencerInterests;
 }

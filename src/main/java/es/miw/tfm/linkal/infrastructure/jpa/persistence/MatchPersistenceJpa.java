@@ -133,7 +133,7 @@ public class MatchPersistenceJpa implements MatchPersistence {
                 .orElseThrow(() -> new NotFoundException("Influencer not found: " + influencerEmail));
 
         return matchRepository
-                .findByInfluencer_IdAndStatusAndBusinessIdIsNull(influencer.getId(), MatchStatus.PENDING)
+                .findPendingByInfluencer(influencer.getId(), MatchStatus.PENDING)
                 .stream()
                 .map(m -> {
                     Match match = m.toMatch();
@@ -156,6 +156,39 @@ public class MatchPersistenceJpa implements MatchPersistence {
                             match.setBusinessAddress(b.getAddress());
                             match.setBusinessVerified(b.getVerified());
                         }
+                    }
+                    return match;
+                })
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Match> findPendingByBusiness(String businessEmail) {
+        BusinessEntity business = businessRepository.findByEmail(businessEmail)
+                .orElseThrow(() -> new NotFoundException("Business not found: " + businessEmail));
+
+        return matchRepository
+                .findPendingByBusiness(business.getId(), MatchStatus.PENDING)
+                .stream()
+                .map(e -> {
+                    Match match = e.toMatch();
+                    if (e.getCampaign() != null) {
+                        match.setCampaignTitle(e.getCampaign().getTitle());
+                    }
+                    InfluencerEntity i = e.getInfluencer();
+                    if (i != null) {
+                        match.setInfluencerName(i.getName());
+                        match.setInfluencerArtisticName(i.getArtisticName());
+                        match.setInfluencerDescription(i.getDescription());
+                        match.setInfluencerEmail(i.getEmail());
+                        match.setInfluencerInstagram(i.getInstagram());
+                        match.setInfluencerTiktok(i.getTiktok());
+                        match.setInfluencerYoutube(i.getYoutube());
+                        match.setInfluencerVerified(i.getVerified());
+                        match.setInfluencerInterests(i.getInterests() != null
+                                ? new java.util.ArrayList<>(i.getInterests())
+                                : new java.util.ArrayList<>());
                     }
                     return match;
                 })
