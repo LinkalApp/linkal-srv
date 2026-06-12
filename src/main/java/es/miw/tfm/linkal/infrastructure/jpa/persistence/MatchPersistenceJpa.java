@@ -19,6 +19,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -123,5 +124,74 @@ public class MatchPersistenceJpa implements MatchPersistence {
                 .status(MatchStatus.PENDING)
                 .createdAt(LocalDateTime.now())
                 .build()).toMatch();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Match> findPendingByInfluencer(String influencerEmail) {
+        InfluencerEntity influencer = influencerRepository.findByEmail(influencerEmail)
+                .orElseThrow(() -> new NotFoundException("Influencer not found: " + influencerEmail));
+
+        return matchRepository
+                .findPendingByInfluencer(influencer.getId(), MatchStatus.PENDING)
+                .stream()
+                .map(m -> {
+                    Match match = m.toMatch();
+                    CampaignEntity c = m.getCampaign();
+                    if (c != null) {
+                        match.setCampaignTitle(c.getTitle());
+                        match.setCampaignDescription(c.getDescription());
+                        match.setCampaignObjective(c.getObjective());
+                        match.setCampaignRequirements(c.getRequirements());
+                        match.setCampaignReward(c.getReward());
+                        match.setCampaignStatus(c.getStatus() != null ? c.getStatus().name() : null);
+                        match.setCampaignCreationDate(c.getCreationDate() != null ? c.getCreationDate().toString() : null);
+                        BusinessEntity b = c.getBusiness();
+                        if (b != null) {
+                            match.setBusinessName(b.getName());
+                            match.setBusinessCategory(b.getCategory());
+                            match.setBusinessDescription(b.getDescription());
+                            match.setBusinessWebsite(b.getWebsite());
+                            match.setBusinessProvince(b.getProvince());
+                            match.setBusinessAddress(b.getAddress());
+                            match.setBusinessVerified(b.getVerified());
+                        }
+                    }
+                    return match;
+                })
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Match> findPendingByBusiness(String businessEmail) {
+        BusinessEntity business = businessRepository.findByEmail(businessEmail)
+                .orElseThrow(() -> new NotFoundException("Business not found: " + businessEmail));
+
+        return matchRepository
+                .findPendingByBusiness(business.getId(), MatchStatus.PENDING)
+                .stream()
+                .map(e -> {
+                    Match match = e.toMatch();
+                    if (e.getCampaign() != null) {
+                        match.setCampaignTitle(e.getCampaign().getTitle());
+                    }
+                    InfluencerEntity i = e.getInfluencer();
+                    if (i != null) {
+                        match.setInfluencerName(i.getName());
+                        match.setInfluencerArtisticName(i.getArtisticName());
+                        match.setInfluencerDescription(i.getDescription());
+                        match.setInfluencerEmail(i.getEmail());
+                        match.setInfluencerInstagram(i.getInstagram());
+                        match.setInfluencerTiktok(i.getTiktok());
+                        match.setInfluencerYoutube(i.getYoutube());
+                        match.setInfluencerVerified(i.getVerified());
+                        match.setInfluencerInterests(i.getInterests() != null
+                                ? new java.util.ArrayList<>(i.getInterests())
+                                : new java.util.ArrayList<>());
+                    }
+                    return match;
+                })
+                .toList();
     }
 }

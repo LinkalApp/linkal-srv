@@ -21,6 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -303,6 +304,156 @@ public class MatchPersistenceJpaTest {
         Optional<Match> result = matchPersistenceJpa.findByInfluencer(UUID.randomUUID(), "influencer@test.com");
 
         assertFalse(result.isPresent());
+    }
+
+    @Test
+    void findPendingByInfluencer_shouldThrowNotFound_whenInfluencerDoesNotExist() {
+        when(influencerRepository.findByEmail("influencer@test.com")).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class,
+                () -> matchPersistenceJpa.findPendingByInfluencer("influencer@test.com"));
+    }
+
+    // ---------------------------------------------------------------------------
+    //  findPendingByInfluencer
+    // ---------------------------------------------------------------------------
+
+    @Test
+    void findPendingByInfluencer_shouldReturnEmptyList_whenNoMatches() {
+        InfluencerEntity influencer = buildInfluencerEntity();
+        when(influencerRepository.findByEmail("influencer@test.com")).thenReturn(Optional.of(influencer));
+        when(matchRepository.findPendingByInfluencer(influencer.getId(), MatchStatus.PENDING))
+                .thenReturn(List.of());
+
+        List<Match> result = matchPersistenceJpa.findPendingByInfluencer("influencer@test.com");
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findPendingByInfluencer_shouldReturnMappedMatches() {
+        InfluencerEntity influencer = buildInfluencerEntity();
+        CampaignEntity campaign = buildCampaignEntity();
+        MatchEntity entity = buildPendingMatchByInfluencer(campaign, influencer);
+
+        when(influencerRepository.findByEmail("influencer@test.com")).thenReturn(Optional.of(influencer));
+        when(matchRepository.findPendingByInfluencer(influencer.getId(), MatchStatus.PENDING))
+                .thenReturn(List.of(entity));
+
+        List<Match> result = matchPersistenceJpa.findPendingByInfluencer("influencer@test.com");
+
+        assertEquals(1, result.size());
+        assertEquals(MatchStatus.PENDING, result.get(0).getStatus());
+    }
+
+    @Test
+    void findPendingByInfluencer_shouldEnrichWithCampaignTitle() {
+        InfluencerEntity influencer = buildInfluencerEntity();
+        CampaignEntity campaign = buildCampaignEntity();
+        campaign.setTitle("Campaña Verano");
+        MatchEntity entity = buildPendingMatchByInfluencer(campaign, influencer);
+
+        when(influencerRepository.findByEmail("influencer@test.com")).thenReturn(Optional.of(influencer));
+        when(matchRepository.findPendingByInfluencer(influencer.getId(), MatchStatus.PENDING))
+                .thenReturn(List.of(entity));
+
+        List<Match> result = matchPersistenceJpa.findPendingByInfluencer("influencer@test.com");
+
+        assertEquals("Campaña Verano", result.get(0).getCampaignTitle());
+    }
+
+    @Test
+    void findPendingByInfluencer_shouldEnrichWithBusinessName() {
+        InfluencerEntity influencer = buildInfluencerEntity();
+        BusinessEntity business = buildBusinessEntity();
+        business.setName("Nike Spain");
+        CampaignEntity campaign = buildCampaignEntityWithBusiness(business);
+        MatchEntity entity = buildPendingMatchByInfluencer(campaign, influencer);
+
+        when(influencerRepository.findByEmail("influencer@test.com")).thenReturn(Optional.of(influencer));
+        when(matchRepository.findPendingByInfluencer(influencer.getId(), MatchStatus.PENDING))
+                .thenReturn(List.of(entity));
+
+        List<Match> result = matchPersistenceJpa.findPendingByInfluencer("influencer@test.com");
+
+        assertEquals("Nike Spain", result.get(0).getBusinessName());
+    }
+
+    // ------------------------------------------------------------------------
+    //  findPendingByBusiness
+    // ------------------------------------------------------------------------
+
+    @Test
+    void findPendingByBusiness_shouldThrowNotFound_whenBusinessDoesNotExist() {
+        when(businessRepository.findByEmail("business@test.com")).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class,
+                () -> matchPersistenceJpa.findPendingByBusiness("business@test.com"));
+    }
+
+    @Test
+    void findPendingByBusiness_shouldReturnEmptyList_whenNoMatches() {
+        BusinessEntity business = buildBusinessEntity();
+        when(businessRepository.findByEmail("business@test.com")).thenReturn(Optional.of(business));
+        when(matchRepository.findPendingByBusiness(business.getId(), MatchStatus.PENDING))
+                .thenReturn(List.of());
+
+        List<Match> result = matchPersistenceJpa.findPendingByBusiness("business@test.com");
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findPendingByBusiness_shouldReturnMappedMatches() {
+        BusinessEntity business = buildBusinessEntity();
+        CampaignEntity campaign = buildCampaignEntityWithBusiness(business);
+        InfluencerEntity influencer = buildInfluencerEntity();
+        MatchEntity entity = buildPendingMatchByBusiness(campaign, influencer);
+
+        when(businessRepository.findByEmail("business@test.com")).thenReturn(Optional.of(business));
+        when(matchRepository.findPendingByBusiness(business.getId(), MatchStatus.PENDING))
+                .thenReturn(List.of(entity));
+
+        List<Match> result = matchPersistenceJpa.findPendingByBusiness("business@test.com");
+
+        assertEquals(1, result.size());
+        assertEquals(MatchStatus.PENDING, result.get(0).getStatus());
+    }
+
+    @Test
+    void findPendingByBusiness_shouldEnrichWithInfluencerName() {
+        BusinessEntity business = buildBusinessEntity();
+        CampaignEntity campaign = buildCampaignEntityWithBusiness(business);
+        InfluencerEntity influencer = buildInfluencerEntity();
+        influencer.setName("Ana López");
+        MatchEntity entity = buildPendingMatchByBusiness(campaign, influencer);
+
+        when(businessRepository.findByEmail("business@test.com")).thenReturn(Optional.of(business));
+        when(matchRepository.findPendingByBusiness(business.getId(), MatchStatus.PENDING))
+                .thenReturn(List.of(entity));
+
+        List<Match> result = matchPersistenceJpa.findPendingByBusiness("business@test.com");
+
+        assertEquals("Ana López", result.get(0).getInfluencerName());
+    }
+
+    @Test
+    void findPendingByBusiness_shouldEnrichWithCampaignTitle() {
+        BusinessEntity business = buildBusinessEntity();
+        CampaignEntity campaign = buildCampaignEntityWithBusiness(business);
+        campaign.setTitle("Campaña Invierno");
+        InfluencerEntity influencer = buildInfluencerEntity();
+        MatchEntity entity = buildPendingMatchByBusiness(campaign, influencer);
+
+        when(businessRepository.findByEmail("business@test.com")).thenReturn(Optional.of(business));
+        when(matchRepository.findPendingByBusiness(business.getId(), MatchStatus.PENDING))
+                .thenReturn(List.of(entity));
+
+        List<Match> result = matchPersistenceJpa.findPendingByBusiness("business@test.com");
+
+        assertEquals("Campaña Invierno", result.get(0).getCampaignTitle());
     }
 
     // ------------------------------------------------------------------------

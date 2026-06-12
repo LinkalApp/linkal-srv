@@ -5,6 +5,7 @@ import es.miw.tfm.linkal.domain.persistence.MatchPersistence;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -23,5 +24,13 @@ public class MatchService {
 
     public Match createByBusiness(UUID influencerId, UUID campaignId, String businessEmail) {
         return matchPersistence.createByBusiness(influencerId, campaignId, businessEmail);
+    }
+
+    public List<Match> findPendingByInfluencer(String influencerEmail) {
+        return matchPersistence.findPendingByInfluencer(influencerEmail);
+    }
+
+    public List<Match> findPendingByBusiness(String businessEmail) {
+        return matchPersistence.findPendingByBusiness(businessEmail);
     }
 }

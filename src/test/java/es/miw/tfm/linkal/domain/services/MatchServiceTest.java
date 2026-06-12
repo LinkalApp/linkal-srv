@@ -195,6 +195,98 @@ public class MatchServiceTest {
     }
 
     // -------------------------------------------------------------------------
+    //  findPendingByInfluencer
+    // -------------------------------------------------------------------------
+
+    @Test
+    void findPendingByInfluencer_shouldDelegateToPersistence() {
+        when(matchPersistence.findPendingByInfluencer("influencer@test.com"))
+                .thenReturn(java.util.List.of());
+
+        matchService.findPendingByInfluencer("influencer@test.com");
+
+        verify(matchPersistence).findPendingByInfluencer("influencer@test.com");
+    }
+
+    @Test
+    void findPendingByInfluencer_shouldReturnEmptyList_whenNoMatches() {
+        when(matchPersistence.findPendingByInfluencer("influencer@test.com"))
+                .thenReturn(java.util.List.of());
+
+        java.util.List<Match> result = matchService.findPendingByInfluencer("influencer@test.com");
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findPendingByInfluencer_shouldReturnMatches() {
+        UUID campaignId = UUID.randomUUID();
+        when(matchPersistence.findPendingByInfluencer("influencer@test.com"))
+                .thenReturn(java.util.List.of(buildPendingMatch(campaignId)));
+
+        java.util.List<Match> result = matchService.findPendingByInfluencer("influencer@test.com");
+
+        assertEquals(1, result.size());
+        assertEquals(MatchStatus.PENDING, result.get(0).getStatus());
+    }
+
+    @Test
+    void findPendingByInfluencer_shouldNotCallFindPendingByBusiness() {
+        when(matchPersistence.findPendingByInfluencer(any())).thenReturn(java.util.List.of());
+
+        matchService.findPendingByInfluencer("influencer@test.com");
+
+        verify(matchPersistence, never()).findPendingByBusiness(any());
+    }
+
+    // -------------------------------------------------------------------------
+    //  findPendingByBusiness
+    // -------------------------------------------------------------------------
+
+    @Test
+    void findPendingByBusiness_shouldDelegateToPersistence() {
+        when(matchPersistence.findPendingByBusiness("business@test.com"))
+                .thenReturn(java.util.List.of());
+
+        matchService.findPendingByBusiness("business@test.com");
+
+        verify(matchPersistence).findPendingByBusiness("business@test.com");
+    }
+
+    @Test
+    void findPendingByBusiness_shouldReturnEmptyList_whenNoMatches() {
+        when(matchPersistence.findPendingByBusiness("business@test.com"))
+                .thenReturn(java.util.List.of());
+
+        java.util.List<Match> result = matchService.findPendingByBusiness("business@test.com");
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findPendingByBusiness_shouldReturnMatches() {
+        UUID campaignId = UUID.randomUUID();
+        when(matchPersistence.findPendingByBusiness("business@test.com"))
+                .thenReturn(java.util.List.of(buildPendingMatch(campaignId)));
+
+        java.util.List<Match> result = matchService.findPendingByBusiness("business@test.com");
+
+        assertEquals(1, result.size());
+        assertEquals(MatchStatus.PENDING, result.get(0).getStatus());
+    }
+
+    @Test
+    void findPendingByBusiness_shouldNotCallFindPendingByInfluencer() {
+        when(matchPersistence.findPendingByBusiness(any())).thenReturn(java.util.List.of());
+
+        matchService.findPendingByBusiness("business@test.com");
+
+        verify(matchPersistence, never()).findPendingByInfluencer(any());
+    }
+
+    // -------------------------------------------------------------------------
     //  helpers
     // -------------------------------------------------------------------------
 

@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import java.util.List;
 import java.util.UUID;
 
 @Rest
@@ -43,4 +44,16 @@ public class MatchResource {
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
+
+    @GetMapping("/pending")
+    @PreAuthorize("hasAnyRole('INFLUENCER','BUSINESS')")
+    public ResponseEntity<List<Match>> findPending(Authentication authentication) {
+        boolean isBusiness = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_BUSINESS"));
+        List<Match> result = isBusiness
+                ? matchService.findPendingByBusiness(authentication.getName())
+                : matchService.findPendingByInfluencer(authentication.getName());
+        return ResponseEntity.ok(result);
+    }
 }
+
