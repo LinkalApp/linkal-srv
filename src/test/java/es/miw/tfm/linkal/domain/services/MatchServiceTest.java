@@ -10,6 +10,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -284,6 +285,68 @@ public class MatchServiceTest {
         matchService.findPendingByBusiness("business@test.com");
 
         verify(matchPersistence, never()).findPendingByInfluencer(any());
+    }
+
+    // findCompletedByInfluencer ---------------------------------------------------------------------
+
+    @Test
+    void findCompletedByInfluencer_shouldDelegateToPersistence() {
+        when(matchPersistence.findCompletedByInfluencer("influencer@test.com")).thenReturn(List.of());
+        matchService.findCompletedByInfluencer("influencer@test.com");
+        verify(matchPersistence).findCompletedByInfluencer("influencer@test.com");
+    }
+
+    @Test
+    void findCompletedByInfluencer_shouldReturnEmptyList() {
+        when(matchPersistence.findCompletedByInfluencer("influencer@test.com")).thenReturn(List.of());
+        assertTrue(matchService.findCompletedByInfluencer("influencer@test.com").isEmpty());
+    }
+
+    @Test
+    void findCompletedByInfluencer_shouldReturnMatches() {
+        UUID id = UUID.randomUUID();
+        when(matchPersistence.findCompletedByInfluencer("influencer@test.com")).thenReturn(List.of(buildCompletedMatch(id)));
+        List<Match> result = matchService.findCompletedByInfluencer("influencer@test.com");
+        assertEquals(1, result.size());
+        assertEquals(MatchStatus.COMPLETED, result.get(0).getStatus());
+    }
+
+    @Test
+    void findCompletedByInfluencer_shouldNotCallFindCompletedByBusiness() {
+        when(matchPersistence.findCompletedByInfluencer(any())).thenReturn(List.of());
+        matchService.findCompletedByInfluencer("influencer@test.com");
+        verify(matchPersistence, never()).findCompletedByBusiness(any());
+    }
+
+    // findCompletedByBusiness --------------------------------------------------------------------------
+
+    @Test
+    void findCompletedByBusiness_shouldDelegateToPersistence() {
+        when(matchPersistence.findCompletedByBusiness("business@test.com")).thenReturn(List.of());
+        matchService.findCompletedByBusiness("business@test.com");
+        verify(matchPersistence).findCompletedByBusiness("business@test.com");
+    }
+
+    @Test
+    void findCompletedByBusiness_shouldReturnEmptyList() {
+        when(matchPersistence.findCompletedByBusiness("business@test.com")).thenReturn(List.of());
+        assertTrue(matchService.findCompletedByBusiness("business@test.com").isEmpty());
+    }
+
+    @Test
+    void findCompletedByBusiness_shouldReturnMatches() {
+        UUID id = UUID.randomUUID();
+        when(matchPersistence.findCompletedByBusiness("business@test.com")).thenReturn(List.of(buildCompletedMatch(id)));
+        List<Match> result = matchService.findCompletedByBusiness("business@test.com");
+        assertEquals(1, result.size());
+        assertEquals(MatchStatus.COMPLETED, result.get(0).getStatus());
+    }
+
+    @Test
+    void findCompletedByBusiness_shouldNotCallFindCompletedByInfluencer() {
+        when(matchPersistence.findCompletedByBusiness(any())).thenReturn(List.of());
+        matchService.findCompletedByBusiness("business@test.com");
+        verify(matchPersistence, never()).findCompletedByInfluencer(any());
     }
 
     // -------------------------------------------------------------------------

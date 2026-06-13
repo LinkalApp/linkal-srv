@@ -319,6 +319,56 @@ public class MatchResourceTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    // GET /api/matches/completed ------------------------------------------------------
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void findCompleted_influencer_shouldReturn200WithEmptyList() throws Exception {
+        when(matchService.findCompletedByInfluencer("influencer@test.com")).thenReturn(List.of());
+        mockMvc.perform(get("/api/matches/completed"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void findCompleted_influencer_shouldReturn200WithMatches() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(matchService.findCompletedByInfluencer("influencer@test.com")).thenReturn(List.of(buildCompletedMatch(id)));
+        mockMvc.perform(get("/api/matches/completed"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].status").value("COMPLETED"));
+    }
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void findCompleted_business_shouldReturn200WithMatches() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(matchService.findCompletedByBusiness("business@test.com")).thenReturn(List.of(buildCompletedMatch(id)));
+        mockMvc.perform(get("/api/matches/completed"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].status").value("COMPLETED"));
+    }
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void findCompleted_influencer_shouldReturn200WithMultipleMatches() throws Exception {
+        UUID id1 = UUID.randomUUID(); UUID id2 = UUID.randomUUID();
+        when(matchService.findCompletedByInfluencer("influencer@test.com"))
+                .thenReturn(List.of(buildCompletedMatch(id1), buildCompletedMatch(id2)));
+        mockMvc.perform(get("/api/matches/completed"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2));
+    }
+
+    @Test
+    void findCompleted_shouldReturn401_whenNotAuthenticated() throws Exception {
+        mockMvc.perform(get("/api/matches/completed")).andExpect(status().isUnauthorized());
+    }
+
     // -------------------------------------------------------------------------
     //  helpers
     // -------------------------------------------------------------------------
