@@ -33,4 +33,12 @@ public class MatchService {
     public List<Match> findPendingByBusiness(String businessEmail) {
         return matchPersistence.findPendingByBusiness(businessEmail);
     }
+
+    public List<Match> findCompletedByInfluencer(String influencerEmail) {
+        return matchPersistence.findCompletedByInfluencer(influencerEmail);
+    }
+
+    public List<Match> findCompletedByBusiness(String businessEmail) {
+        return matchPersistence.findCompletedByBusiness(businessEmail);
+    }
 }

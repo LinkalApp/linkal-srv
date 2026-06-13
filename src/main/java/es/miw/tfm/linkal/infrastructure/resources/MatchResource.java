@@ -55,5 +55,16 @@ public class MatchResource {
                 : matchService.findPendingByInfluencer(authentication.getName());
         return ResponseEntity.ok(result);
     }
+
+    @GetMapping("/completed")
+    @PreAuthorize("hasAnyRole('INFLUENCER','BUSINESS')")
+    public ResponseEntity<List<Match>> findCompleted(Authentication authentication) {
+        boolean isBusiness = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_BUSINESS"));
+        List<Match> result = isBusiness
+                ? matchService.findCompletedByBusiness(authentication.getName())
+                : matchService.findCompletedByInfluencer(authentication.getName());
+        return ResponseEntity.ok(result);
+    }
 }
 
