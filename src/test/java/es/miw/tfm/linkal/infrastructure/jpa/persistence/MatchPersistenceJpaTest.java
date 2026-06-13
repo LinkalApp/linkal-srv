@@ -457,6 +457,140 @@ public class MatchPersistenceJpaTest {
     }
 
     // ------------------------------------------------------------------------
+    //  findCompletedByInfluencer
+    // ------------------------------------------------------------------------
+
+    @Test
+    void findCompletedByInfluencer_shouldThrowNotFound_whenInfluencerDoesNotExist() {
+        when(influencerRepository.findByEmail("influencer@test.com")).thenReturn(Optional.empty());
+        assertThrows(NotFoundException.class,
+                () -> matchPersistenceJpa.findCompletedByInfluencer("influencer@test.com"));
+    }
+
+    @Test
+    void findCompletedByInfluencer_shouldReturnEmptyList_whenNoMatches() {
+        InfluencerEntity influencer = buildInfluencerEntity();
+        when(influencerRepository.findByEmail("influencer@test.com")).thenReturn(Optional.of(influencer));
+        when(matchRepository.findCompletedByInfluencer(influencer.getId(), MatchStatus.COMPLETED)).thenReturn(List.of());
+
+        List<Match> result = matchPersistenceJpa.findCompletedByInfluencer("influencer@test.com");
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findCompletedByInfluencer_shouldReturnMappedMatches() {
+        InfluencerEntity influencer = buildInfluencerEntity();
+        CampaignEntity campaign = buildCampaignEntity();
+        when(influencerRepository.findByEmail("influencer@test.com")).thenReturn(Optional.of(influencer));
+        when(matchRepository.findCompletedByInfluencer(influencer.getId(), MatchStatus.COMPLETED))
+                .thenReturn(List.of(buildCompletedMatch(campaign, influencer)));
+
+        List<Match> result = matchPersistenceJpa.findCompletedByInfluencer("influencer@test.com");
+
+        assertEquals(1, result.size());
+        assertEquals(MatchStatus.COMPLETED, result.get(0).getStatus());
+    }
+
+    @Test
+    void findCompletedByInfluencer_shouldEnrichWithCampaignTitle() {
+        InfluencerEntity influencer = buildInfluencerEntity();
+        CampaignEntity campaign = buildCampaignEntity();
+        campaign.setTitle("Campaña Completada");
+        when(influencerRepository.findByEmail("influencer@test.com")).thenReturn(Optional.of(influencer));
+        when(matchRepository.findCompletedByInfluencer(influencer.getId(), MatchStatus.COMPLETED))
+                .thenReturn(List.of(buildCompletedMatch(campaign, influencer)));
+
+        List<Match> result = matchPersistenceJpa.findCompletedByInfluencer("influencer@test.com");
+
+        assertEquals("Campaña Completada", result.get(0).getCampaignTitle());
+    }
+
+    @Test
+    void findCompletedByInfluencer_shouldEnrichWithBusinessName() {
+        InfluencerEntity influencer = buildInfluencerEntity();
+        BusinessEntity business = buildBusinessEntity();
+        business.setName("Adidas");
+        CampaignEntity campaign = buildCampaignEntityWithBusiness(business);
+        when(influencerRepository.findByEmail("influencer@test.com")).thenReturn(Optional.of(influencer));
+        when(matchRepository.findCompletedByInfluencer(influencer.getId(), MatchStatus.COMPLETED))
+                .thenReturn(List.of(buildCompletedMatch(campaign, influencer)));
+
+        List<Match> result = matchPersistenceJpa.findCompletedByInfluencer("influencer@test.com");
+
+        assertEquals("Adidas", result.get(0).getBusinessName());
+    }
+
+    // -------------------------------------------------------------------------
+    //  findCompletedByBusiness
+    // -------------------------------------------------------------------------
+
+    @Test
+    void findCompletedByBusiness_shouldThrowNotFound_whenBusinessDoesNotExist() {
+        when(businessRepository.findByEmail("business@test.com")).thenReturn(Optional.empty());
+        assertThrows(NotFoundException.class,
+                () -> matchPersistenceJpa.findCompletedByBusiness("business@test.com"));
+    }
+
+    @Test
+    void findCompletedByBusiness_shouldReturnEmptyList_whenNoMatches() {
+        BusinessEntity business = buildBusinessEntity();
+        when(businessRepository.findByEmail("business@test.com")).thenReturn(Optional.of(business));
+        when(matchRepository.findCompletedByBusiness(business.getId(), MatchStatus.COMPLETED)).thenReturn(List.of());
+
+        List<Match> result = matchPersistenceJpa.findCompletedByBusiness("business@test.com");
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findCompletedByBusiness_shouldReturnMappedMatches() {
+        BusinessEntity business = buildBusinessEntity();
+        CampaignEntity campaign = buildCampaignEntityWithBusiness(business);
+        InfluencerEntity influencer = buildInfluencerEntity();
+        when(businessRepository.findByEmail("business@test.com")).thenReturn(Optional.of(business));
+        when(matchRepository.findCompletedByBusiness(business.getId(), MatchStatus.COMPLETED))
+                .thenReturn(List.of(buildCompletedMatch(campaign, influencer)));
+
+        List<Match> result = matchPersistenceJpa.findCompletedByBusiness("business@test.com");
+
+        assertEquals(1, result.size());
+        assertEquals(MatchStatus.COMPLETED, result.get(0).getStatus());
+    }
+
+    @Test
+    void findCompletedByBusiness_shouldEnrichWithInfluencerName() {
+        BusinessEntity business = buildBusinessEntity();
+        CampaignEntity campaign = buildCampaignEntityWithBusiness(business);
+        InfluencerEntity influencer = buildInfluencerEntity();
+        influencer.setName("Luis García");
+        when(businessRepository.findByEmail("business@test.com")).thenReturn(Optional.of(business));
+        when(matchRepository.findCompletedByBusiness(business.getId(), MatchStatus.COMPLETED))
+                .thenReturn(List.of(buildCompletedMatch(campaign, influencer)));
+
+        List<Match> result = matchPersistenceJpa.findCompletedByBusiness("business@test.com");
+
+        assertEquals("Luis García", result.get(0).getInfluencerName());
+    }
+
+    @Test
+    void findCompletedByBusiness_shouldEnrichWithCampaignTitle() {
+        BusinessEntity business = buildBusinessEntity();
+        CampaignEntity campaign = buildCampaignEntityWithBusiness(business);
+        campaign.setTitle("Campaña Verano 2026");
+        InfluencerEntity influencer = buildInfluencerEntity();
+        when(businessRepository.findByEmail("business@test.com")).thenReturn(Optional.of(business));
+        when(matchRepository.findCompletedByBusiness(business.getId(), MatchStatus.COMPLETED))
+                .thenReturn(List.of(buildCompletedMatch(campaign, influencer)));
+
+        List<Match> result = matchPersistenceJpa.findCompletedByBusiness("business@test.com");
+
+        assertEquals("Campaña Verano 2026", result.get(0).getCampaignTitle());
+    }
+
+    // ------------------------------------------------------------------------
     //  helpers
     // -------------------------------------------------------------------------
 
