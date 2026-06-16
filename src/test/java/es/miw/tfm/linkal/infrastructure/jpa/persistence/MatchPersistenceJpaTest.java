@@ -9,10 +9,7 @@ import es.miw.tfm.linkal.infrastructure.jpa.entities.BusinessEntity;
 import es.miw.tfm.linkal.infrastructure.jpa.entities.CampaignEntity;
 import es.miw.tfm.linkal.infrastructure.jpa.entities.InfluencerEntity;
 import es.miw.tfm.linkal.infrastructure.jpa.entities.MatchEntity;
-import es.miw.tfm.linkal.infrastructure.jpa.repositories.BusinessRepository;
-import es.miw.tfm.linkal.infrastructure.jpa.repositories.CampaignRepository;
-import es.miw.tfm.linkal.infrastructure.jpa.repositories.InfluencerRepository;
-import es.miw.tfm.linkal.infrastructure.jpa.repositories.MatchRepository;
+import es.miw.tfm.linkal.infrastructure.jpa.repositories.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -35,6 +32,7 @@ public class MatchPersistenceJpaTest {
     @Mock private CampaignRepository campaignRepository;
     @Mock private InfluencerRepository influencerRepository;
     @Mock private BusinessRepository businessRepository;
+    @Mock private ChatRepository chatRepository;
 
     @InjectMocks
     private MatchPersistenceJpa matchPersistenceJpa;
@@ -105,6 +103,7 @@ public class MatchPersistenceJpaTest {
         when(matchRepository.findByCampaign_IdAndInfluencer_Id(campaign.getId(), influencer.getId()))
                 .thenReturn(Optional.of(existingByBusiness));
         when(matchRepository.save(any())).thenReturn(existingByBusiness);
+        when(chatRepository.findByMatch_Id(any())).thenReturn(Optional.empty());
 
         matchPersistenceJpa.createByInfluencer(campaign.getId(), "influencer@test.com");
 
@@ -235,6 +234,7 @@ public class MatchPersistenceJpaTest {
         when(matchRepository.findByCampaign_IdAndInfluencer_Id(campaign.getId(), influencer.getId()))
                 .thenReturn(Optional.of(existingByInfluencer));
         when(matchRepository.save(any())).thenReturn(existingByInfluencer);
+        when(chatRepository.findByMatch_Id(any())).thenReturn(Optional.empty());
 
         matchPersistenceJpa.createByBusiness(influencer.getId(), campaign.getId(), "business@test.com");
 

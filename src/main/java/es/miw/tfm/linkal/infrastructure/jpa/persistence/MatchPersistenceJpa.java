@@ -6,14 +6,8 @@ import es.miw.tfm.linkal.domain.exceptions.NotFoundException;
 import es.miw.tfm.linkal.domain.model.Match;
 import es.miw.tfm.linkal.domain.model.enums.MatchStatus;
 import es.miw.tfm.linkal.domain.persistence.MatchPersistence;
-import es.miw.tfm.linkal.infrastructure.jpa.entities.BusinessEntity;
-import es.miw.tfm.linkal.infrastructure.jpa.entities.CampaignEntity;
-import es.miw.tfm.linkal.infrastructure.jpa.entities.InfluencerEntity;
-import es.miw.tfm.linkal.infrastructure.jpa.entities.MatchEntity;
-import es.miw.tfm.linkal.infrastructure.jpa.repositories.BusinessRepository;
-import es.miw.tfm.linkal.infrastructure.jpa.repositories.CampaignRepository;
-import es.miw.tfm.linkal.infrastructure.jpa.repositories.InfluencerRepository;
-import es.miw.tfm.linkal.infrastructure.jpa.repositories.MatchRepository;
+import es.miw.tfm.linkal.infrastructure.jpa.entities.*;
+import es.miw.tfm.linkal.infrastructure.jpa.repositories.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +25,7 @@ public class MatchPersistenceJpa implements MatchPersistence {
     private final CampaignRepository campaignRepository;
     private final InfluencerRepository influencerRepository;
     private final BusinessRepository businessRepository;
+    private final ChatRepository chatRepository;
 
     @Override
     @Transactional
@@ -57,7 +52,9 @@ public class MatchPersistenceJpa implements MatchPersistence {
             // businessId != null → lo inició el comercio → match mutuo
             existing.setStatus(MatchStatus.COMPLETED);
             existing.setMatchedAt(LocalDateTime.now());
-            return matchRepository.save(existing).toMatch();
+            MatchEntity saved = matchRepository.save(existing);
+            createChatForCompletedMatch(saved);
+            return saved.toMatch();
         }
 
         // Sin match previo
@@ -114,7 +111,9 @@ public class MatchPersistenceJpa implements MatchPersistence {
             match.setBusinessId(business.getId());
             match.setStatus(MatchStatus.COMPLETED);
             match.setMatchedAt(LocalDateTime.now());
-            return matchRepository.save(match).toMatch();
+            MatchEntity saved = matchRepository.save(match);
+            createChatForCompletedMatch(saved);
+            return saved.toMatch();
         }
 
         return matchRepository.save(MatchEntity.builder()
@@ -262,5 +261,22 @@ public class MatchPersistenceJpa implements MatchPersistence {
                     return match;
                 })
                 .toList();
+    }
+
+    // Chat automático --------------------------------------------------------
+
+    private void createChatForCompletedMatch(MatchEntity match) {
+        chatRepository.findByMatch_Id(match.getId()).ifPresentOrElse( existing -> {},
+                () -> {
+                    String campaignTitle  = match.getCampaign()   != null ? match.getCampaign().getTitle()  : "Campaña";
+                    String influencerName = match.getInfluencer() != null ? match.getInfluencer().getName() : "Influencer";
+                    ChatEntity chat = ChatEntity.builder()
+                            .match(match)
+                            .campaign(match.getCampaign())
+                            .name(campaignTitle + " · " + influencerName)
+                            .build();
+                    chatRepository.save(chat);
+                }
+        );
     }
 }
