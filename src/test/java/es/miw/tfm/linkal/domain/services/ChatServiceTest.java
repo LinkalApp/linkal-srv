@@ -10,6 +10,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -34,6 +35,8 @@ public class ChatServiceTest {
 
         verify(chatPersistence).createByMatch(matchId);
     }
+
+    // createByMatch ------------------------------------------------------------------
 
     @Test
     void createForMatch_shouldReturnChatFromPersistence() {
@@ -76,6 +79,54 @@ public class ChatServiceTest {
         verify(chatPersistence, times(1)).createByMatch(any());
     }
 
+    // findAllByUser -----------------------------------------------------------
+
+    @Test
+    void findAllByUser_shouldDelegateToPersistence() {
+        when(chatPersistence.findAllByUser("user@test.com")).thenReturn(List.of());
+
+        chatService.findAllByUser("user@test.com");
+
+        verify(chatPersistence).findAllByUser("user@test.com");
+    }
+
+    @Test
+    void findAllByUser_shouldReturnEmptyList() {
+        when(chatPersistence.findAllByUser("user@test.com")).thenReturn(List.of());
+
+        assertTrue(chatService.findAllByUser("user@test.com").isEmpty());
+    }
+
+    @Test
+    void findAllByUser_shouldReturnChatsFromPersistence() {
+        UUID matchId = UUID.randomUUID();
+        Chat chat = buildChatWithDisplayName(matchId, "Nike Spain");
+        when(chatPersistence.findAllByUser("user@test.com")).thenReturn(List.of(chat));
+
+        List<Chat> result = chatService.findAllByUser("user@test.com");
+
+        assertEquals(1, result.size());
+        assertEquals("Nike Spain", result.get(0).getDisplayName());
+    }
+
+    @Test
+    void findAllByUser_shouldPropagateNotFoundException() {
+        when(chatPersistence.findAllByUser("unknown@test.com"))
+                .thenThrow(new NotFoundException("User not found"));
+
+        assertThrows(NotFoundException.class,
+                () -> chatService.findAllByUser("unknown@test.com"));
+    }
+
+    @Test
+    void findAllByUser_shouldNotCallCreateForMatch() {
+        when(chatPersistence.findAllByUser(any())).thenReturn(List.of());
+
+        chatService.findAllByUser("user@test.com");
+
+        verify(chatPersistence, never()).createByMatch(any());
+    }
+
     // helpers --------------------------------------------------------------------
 
     private Chat buildChat(UUID matchId) {
@@ -83,6 +134,15 @@ public class ChatServiceTest {
                 .id(UUID.randomUUID())
                 .name("Chat test")
                 .matchId(matchId)
+                .build();
+    }
+
+    private Chat buildChatWithDisplayName(UUID matchId, String displayName) {
+        return Chat.builder()
+                .id(UUID.randomUUID())
+                .name("Chat test")
+                .matchId(matchId)
+                .displayName(displayName)
                 .build();
     }
 }
