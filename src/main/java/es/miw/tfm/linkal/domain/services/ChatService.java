@@ -5,6 +5,7 @@ import es.miw.tfm.linkal.domain.persistence.ChatPersistence;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -14,5 +15,9 @@ public class ChatService {
 
     public Chat createByMatch(UUID matchId) {
         return chatPersistence.createByMatch(matchId);
+    }
+
+    public List<Chat> findAllByUser(String email) {
+        return chatPersistence.findAllByUser(email);
     }
 }

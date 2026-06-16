@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
@@ -18,4 +19,10 @@ public class Chat {
     private String name;
     private UUID matchId;
     private UUID campaignId;
+
+    // Campos para el listado
+    private String displayName;
+    private String campaignTitle;
+    private String lastMessage;
+    private LocalDateTime lastMessageAt;
 }

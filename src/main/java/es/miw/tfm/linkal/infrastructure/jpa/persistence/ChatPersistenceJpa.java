@@ -7,15 +7,20 @@ import es.miw.tfm.linkal.domain.model.Chat;
 import es.miw.tfm.linkal.domain.model.enums.MatchStatus;
 import es.miw.tfm.linkal.domain.persistence.ChatPersistence;
 import es.miw.tfm.linkal.infrastructure.jpa.entities.ChatEntity;
+import es.miw.tfm.linkal.infrastructure.jpa.entities.InfluencerEntity;
 import es.miw.tfm.linkal.infrastructure.jpa.entities.MatchEntity;
 import es.miw.tfm.linkal.infrastructure.jpa.entities.UserEntity;
 import es.miw.tfm.linkal.infrastructure.jpa.repositories.ChatRepository;
 import es.miw.tfm.linkal.infrastructure.jpa.repositories.MatchRepository;
+import es.miw.tfm.linkal.infrastructure.jpa.repositories.MessageRepository;
 import es.miw.tfm.linkal.infrastructure.jpa.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
 
 @Repository
@@ -25,6 +30,7 @@ public class ChatPersistenceJpa implements ChatPersistence {
     private final ChatRepository chatRepository;
     private final MatchRepository matchRepository;
     private final UserRepository userRepository;
+    private final MessageRepository messageRepository;
 
     @Override
     @Transactional
@@ -51,9 +57,50 @@ public class ChatPersistenceJpa implements ChatPersistence {
                 });
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<Chat> findAllByUser(String email) {
+        UserEntity user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("User not found: " + email));
+
+        return chatRepository.findAllByUserId(user.getId())
+                .stream()
+                .map(c -> {
+                    Chat chat = c.toChat();
+                    chat.setDisplayName(resolveDisplayName(c, user.getId()));
+                    if (c.getMatch().getCampaign() != null) {
+                        chat.setCampaignTitle(c.getMatch().getCampaign().getTitle());
+                    }
+                    messageRepository.findTopByChat_IdOrderBySentAtDesc(c.getId())
+                            .ifPresent(msg -> {
+                                chat.setLastMessage(msg.getText());
+                                chat.setLastMessageAt(msg.getSentAt());
+                            });
+                    return chat;
+                })
+                .sorted(Comparator.comparing(
+                        chat -> chat.getLastMessageAt() != null ? chat.getLastMessageAt() : LocalDateTime.MIN,
+                        Comparator.reverseOrder()))
+                .toList();
+    }
+
+    // Helpers ------------------------------------------------------------------------------------------
+
     private String buildChatName(MatchEntity match) {
         String campaign   = match.getCampaign()   != null ? match.getCampaign().getTitle()   : "Campaña";
         String influencer = match.getInfluencer() != null ? match.getInfluencer().getName()  : "Influencer";
         return campaign + " · " + influencer;
+    }
+
+    private String resolveDisplayName(ChatEntity chat, UUID userId) {
+        InfluencerEntity influencer = chat.getMatch().getInfluencer();
+        boolean isInfluencer = influencer != null && userId.equals(influencer.getId());
+        if (isInfluencer) {
+            var business = chat.getMatch().getCampaign() != null
+                    ? chat.getMatch().getCampaign().getBusiness() : null;
+            return business != null ? business.getName() : "";
+        } else {
+            return influencer != null ? influencer.getName() : "";
+        }
     }
 }
