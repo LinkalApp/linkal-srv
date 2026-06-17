@@ -31,7 +31,7 @@ public class MessageEntity {
     private LocalDateTime sentAt;
 
     @Column(nullable = false)
-    private UUID idUser;
+    private UUID senderId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "chat_id", nullable = false)
