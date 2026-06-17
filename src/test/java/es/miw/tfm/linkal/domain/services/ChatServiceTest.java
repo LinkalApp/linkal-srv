@@ -1,8 +1,10 @@
 package es.miw.tfm.linkal.domain.services;
 
 import es.miw.tfm.linkal.domain.exceptions.BadRequestException;
+import es.miw.tfm.linkal.domain.exceptions.ForbiddenException;
 import es.miw.tfm.linkal.domain.exceptions.NotFoundException;
 import es.miw.tfm.linkal.domain.model.Chat;
+import es.miw.tfm.linkal.domain.model.Message;
 import es.miw.tfm.linkal.domain.persistence.ChatPersistence;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,6 +12,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -127,6 +130,51 @@ public class ChatServiceTest {
         verify(chatPersistence, never()).createByMatch(any());
     }
 
+    // ─── sendMessage ──────────────────────────────────────────────────────────
+
+    @Test
+    void sendMessage_shouldDelegateToPersistence() {
+        UUID chatId = UUID.randomUUID();
+        when(chatPersistence.sendMessage(chatId, "Hola!", "user@test.com"))
+                .thenReturn(buildMessage(chatId, "Hola!"));
+
+        chatService.sendMessage(chatId, "Hola!", "user@test.com");
+
+        verify(chatPersistence).sendMessage(chatId, "Hola!", "user@test.com");
+    }
+
+    @Test
+    void sendMessage_shouldReturnMessageFromPersistence() {
+        UUID chatId = UUID.randomUUID();
+        Message msg = buildMessage(chatId, "Hola!");
+        when(chatPersistence.sendMessage(chatId, "Hola!", "user@test.com")).thenReturn(msg);
+
+        Message result = chatService.sendMessage(chatId, "Hola!", "user@test.com");
+
+        assertNotNull(result);
+        assertEquals("Hola!", result.getText());
+    }
+
+    @Test
+    void sendMessage_shouldPropagateForbiddenException() {
+        UUID chatId = UUID.randomUUID();
+        when(chatPersistence.sendMessage(any(), any(), eq("outsider@test.com")))
+                .thenThrow(new ForbiddenException("No tienes acceso"));
+
+        assertThrows(ForbiddenException.class,
+                () -> chatService.sendMessage(chatId, "Hola!", "outsider@test.com"));
+    }
+
+    @Test
+    void sendMessage_shouldPropagateNotFoundException() {
+        UUID chatId = UUID.randomUUID();
+        when(chatPersistence.sendMessage(any(), any(), any()))
+                .thenThrow(new NotFoundException("Chat not found"));
+
+        assertThrows(NotFoundException.class,
+                () -> chatService.sendMessage(chatId, "Hola!", "user@test.com"));
+    }
+
     // helpers --------------------------------------------------------------------
 
     private Chat buildChat(UUID matchId) {
@@ -143,6 +191,16 @@ public class ChatServiceTest {
                 .name("Chat test")
                 .matchId(matchId)
                 .displayName(displayName)
+                .build();
+    }
+
+    private Message buildMessage(UUID chatId, String text) {
+        return Message.builder()
+                .id(UUID.randomUUID())
+                .text(text)
+                .sentAt(LocalDateTime.now())
+                .chatId(chatId)
+                .senderId(UUID.randomUUID())
                 .build();
     }
 }

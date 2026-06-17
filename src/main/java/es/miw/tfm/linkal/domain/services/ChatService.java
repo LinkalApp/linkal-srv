@@ -1,6 +1,7 @@
 package es.miw.tfm.linkal.domain.services;
 
 import es.miw.tfm.linkal.domain.model.Chat;
+import es.miw.tfm.linkal.domain.model.Message;
 import es.miw.tfm.linkal.domain.persistence.ChatPersistence;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,5 +20,9 @@ public class ChatService {
 
     public List<Chat> findAllByUser(String email) {
         return chatPersistence.findAllByUser(email);
+    }
+
+    public Message sendMessage(UUID chatId, String text, String senderEmail) {
+        return chatPersistence.sendMessage(chatId, text, senderEmail);
     }
 }

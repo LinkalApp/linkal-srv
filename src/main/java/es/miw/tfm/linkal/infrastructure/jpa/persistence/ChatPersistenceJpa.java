@@ -4,12 +4,10 @@ import es.miw.tfm.linkal.domain.exceptions.BadRequestException;
 import es.miw.tfm.linkal.domain.exceptions.ForbiddenException;
 import es.miw.tfm.linkal.domain.exceptions.NotFoundException;
 import es.miw.tfm.linkal.domain.model.Chat;
+import es.miw.tfm.linkal.domain.model.Message;
 import es.miw.tfm.linkal.domain.model.enums.MatchStatus;
 import es.miw.tfm.linkal.domain.persistence.ChatPersistence;
-import es.miw.tfm.linkal.infrastructure.jpa.entities.ChatEntity;
-import es.miw.tfm.linkal.infrastructure.jpa.entities.InfluencerEntity;
-import es.miw.tfm.linkal.infrastructure.jpa.entities.MatchEntity;
-import es.miw.tfm.linkal.infrastructure.jpa.entities.UserEntity;
+import es.miw.tfm.linkal.infrastructure.jpa.entities.*;
 import es.miw.tfm.linkal.infrastructure.jpa.repositories.ChatRepository;
 import es.miw.tfm.linkal.infrastructure.jpa.repositories.MatchRepository;
 import es.miw.tfm.linkal.infrastructure.jpa.repositories.MessageRepository;
@@ -84,6 +82,27 @@ public class ChatPersistenceJpa implements ChatPersistence {
                 .toList();
     }
 
+    @Override
+    @Transactional
+    public Message sendMessage(UUID chatId, String text, String senderEmail) {
+        ChatEntity chat = chatRepository.findById(chatId)
+                .orElseThrow(() -> new NotFoundException("Chat not found: " + chatId));
+
+        UserEntity sender = userRepository.findByEmail(senderEmail)
+                .orElseThrow(() -> new NotFoundException("User not found: " + senderEmail));
+
+        assertUserBelongsToChat(sender.getId(), chat);
+
+        MessageEntity msg = MessageEntity.builder()
+                .text(text)
+                .sentAt(LocalDateTime.now())
+                .senderId(sender.getId())
+                .chat(chat)
+                .build();
+
+        return messageRepository.save(msg).toMessage();
+    }
+
     // Helpers ------------------------------------------------------------------------------------------
 
     private String buildChatName(MatchEntity match) {
@@ -101,6 +120,20 @@ public class ChatPersistenceJpa implements ChatPersistence {
             return business != null ? business.getName() : "";
         } else {
             return influencer != null ? influencer.getName() : "";
+        }
+    }
+
+    private void assertUserBelongsToChat(UUID userId, ChatEntity chat) {
+        MatchEntity match = chat.getMatch();
+        InfluencerEntity influencer = match.getInfluencer();
+        UUID businessId = match.getCampaign() != null && match.getCampaign().getBusiness() != null
+                ? match.getCampaign().getBusiness().getId() : null;
+
+        boolean isInfluencer = influencer != null && userId.equals(influencer.getId());
+        boolean isBusiness   = userId.equals(businessId);
+
+        if (!isInfluencer && !isBusiness) {
+            throw new ForbiddenException("No tienes acceso a este chat");
         }
     }
 }

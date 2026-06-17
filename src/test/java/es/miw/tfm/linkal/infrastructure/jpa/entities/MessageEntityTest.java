@@ -23,7 +23,7 @@ public class MessageEntityTest {
                 .id(id)
                 .text("Hola, ¿cómo estás?")
                 .sentAt(sentAt)
-                .idUser(UUID.randomUUID())
+                .senderId(UUID.randomUUID())
                 .build();
 
         Message message = entity.toMessage();
@@ -45,7 +45,7 @@ public class MessageEntityTest {
                 .id(UUID.randomUUID())
                 .text("Mensaje de prueba")
                 .sentAt(LocalDateTime.now())
-                .idUser(UUID.randomUUID())
+                .senderId(UUID.randomUUID())
                 .chat(chat)
                 .build();
 
@@ -60,7 +60,7 @@ public class MessageEntityTest {
                 .id(UUID.randomUUID())
                 .text("Mensaje sin chat")
                 .sentAt(LocalDateTime.now())
-                .idUser(UUID.randomUUID())
+                .senderId(UUID.randomUUID())
                 .build();
 
         Message message = entity.toMessage();
@@ -74,7 +74,7 @@ public class MessageEntityTest {
                 .id(UUID.randomUUID())
                 .text("Test")
                 .sentAt(LocalDateTime.now())
-                .idUser(UUID.randomUUID())
+                .senderId(UUID.randomUUID())
                 .build();
 
         Message m1 = entity.toMessage();
