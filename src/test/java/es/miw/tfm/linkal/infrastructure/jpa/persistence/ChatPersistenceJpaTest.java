@@ -415,6 +415,103 @@ public class ChatPersistenceJpaTest {
         assertNotEquals(result.get(0).getCampaignTitle(), result.get(1).getCampaignTitle());
     }
 
+    // -------------------------------------------------------------------------
+    //  sendMessage
+    // -------------------------------------------------------------------------
+
+    @Test
+    void sendMessage_shouldThrowNotFound_whenChatDoesNotExist() {
+        UUID chatId = UUID.randomUUID();
+        when(chatRepository.findById(chatId)).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class,
+                () -> chatPersistenceJpa.sendMessage(chatId, "Hola", "user@test.com"));
+        verify(messageRepository, never()).save(any());
+    }
+
+    @Test
+    void sendMessage_shouldThrowNotFound_whenSenderDoesNotExist() {
+        UUID chatId = UUID.randomUUID();
+        MatchEntity match = buildCompletedMatch(UUID.randomUUID());
+        ChatEntity chat = buildChatEntity(match);
+
+        when(chatRepository.findById(chatId)).thenReturn(Optional.of(chat));
+        when(userRepository.findByEmail("unknown@test.com")).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class,
+                () -> chatPersistenceJpa.sendMessage(chatId, "Hola", "unknown@test.com"));
+        verify(messageRepository, never()).save(any());
+    }
+
+    @Test
+    void sendMessage_shouldThrowForbidden_whenSenderNotInMatch() {
+        UUID chatId = UUID.randomUUID();
+        UUID strangerId = UUID.randomUUID();
+        UserEntity stranger = buildUser(strangerId, "stranger@test.com");
+        InfluencerEntity influencer = buildInfluencer("Ana");
+        BusinessEntity business = buildBusiness("Nike");
+        CampaignEntity campaign = buildCampaign("C");
+        campaign.setBusiness(business);
+        MatchEntity match = buildCompletedMatchWithDetails(UUID.randomUUID(), campaign, influencer);
+        ChatEntity chat = buildChatEntity(match);
+
+        when(chatRepository.findById(chatId)).thenReturn(Optional.of(chat));
+        when(userRepository.findByEmail("stranger@test.com")).thenReturn(Optional.of(stranger));
+
+        assertThrows(es.miw.tfm.linkal.domain.exceptions.ForbiddenException.class,
+                () -> chatPersistenceJpa.sendMessage(chatId, "Hola", "stranger@test.com"));
+        verify(messageRepository, never()).save(any());
+    }
+
+    @Test
+    void sendMessage_shouldPersistMessage() {
+        UUID chatId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UserEntity user = buildUser(userId, "user@test.com");
+        InfluencerEntity influencer = buildInfluencer("Ana");
+        influencer.setId(userId);
+        MatchEntity match = buildCompletedMatchWithDetails(UUID.randomUUID(), buildCampaign("C"), influencer);
+        ChatEntity chat = buildChatEntity(match);
+        chat.setId(chatId);
+        MessageEntity savedMsg = buildMessage(chat, "Hola!", LocalDateTime.now());
+
+        when(chatRepository.findById(chatId)).thenReturn(Optional.of(chat));
+        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(messageRepository.save(any())).thenReturn(savedMsg);
+
+        chatPersistenceJpa.sendMessage(chatId, "Hola!", "user@test.com");
+
+        ArgumentCaptor<MessageEntity> captor = ArgumentCaptor.forClass(MessageEntity.class);
+        verify(messageRepository).save(captor.capture());
+        assertEquals("Hola!", captor.getValue().getText());
+        assertEquals(userId, captor.getValue().getSenderId());
+        assertEquals(chat, captor.getValue().getChat());
+        assertNotNull(captor.getValue().getSentAt());
+    }
+
+    @Test
+    void sendMessage_shouldReturnSavedMessage() {
+        UUID chatId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UserEntity user = buildUser(userId, "user@test.com");
+        InfluencerEntity influencer = buildInfluencer("Ana");
+        influencer.setId(userId);
+        MatchEntity match = buildCompletedMatchWithDetails(UUID.randomUUID(), buildCampaign("C"), influencer);
+        ChatEntity chat = buildChatEntity(match);
+        chat.setId(chatId);
+        MessageEntity savedMsg = buildMessage(chat, "Respuesta del server", LocalDateTime.now());
+
+        when(chatRepository.findById(chatId)).thenReturn(Optional.of(chat));
+        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(messageRepository.save(any())).thenReturn(savedMsg);
+
+        es.miw.tfm.linkal.domain.model.Message result =
+                chatPersistenceJpa.sendMessage(chatId, "Respuesta del server", "user@test.com");
+
+        assertNotNull(result);
+        assertEquals("Respuesta del server", result.getText());
+    }
+
     // ------------------------------------------------------------------------
     //  helpers
     // ------------------------------------------------------------------------
@@ -467,7 +564,7 @@ public class ChatPersistenceJpaTest {
         m.setId(UUID.randomUUID());
         m.setText(text);
         m.setSentAt(sentAt);
-        m.setIdUser(UUID.randomUUID());
+        m.setSenderId(UUID.randomUUID());
         m.setChat(chat);
         return m;
     }
