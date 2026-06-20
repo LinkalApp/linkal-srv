@@ -10,4 +10,5 @@ public interface ChatPersistence {
     Chat createByMatch(UUID matchId);
     List<Chat> findAllByUser(String email);
     Message sendMessage(UUID chatId, String text, String senderEmail);
+    List<Message> getMessages(UUID chatId, String email);
 }

@@ -130,7 +130,7 @@ public class ChatServiceTest {
         verify(chatPersistence, never()).createByMatch(any());
     }
 
-    // ─── sendMessage ──────────────────────────────────────────────────────────
+    // sendMessage --------------------------------------------------------------------------
 
     @Test
     void sendMessage_shouldDelegateToPersistence() {
@@ -173,6 +173,63 @@ public class ChatServiceTest {
 
         assertThrows(NotFoundException.class,
                 () -> chatService.sendMessage(chatId, "Hola!", "user@test.com"));
+    }
+
+    // getMessages --------------------------------------------------------------------
+
+    @Test
+    void getMessages_shouldDelegateToPersistence() {
+        UUID chatId = UUID.randomUUID();
+        when(chatPersistence.getMessages(chatId, "user@test.com")).thenReturn(List.of());
+        chatService.getMessages(chatId, "user@test.com");
+        verify(chatPersistence).getMessages(chatId, "user@test.com");
+    }
+
+    @Test
+    void getMessages_shouldReturnEmptyList_whenNoMessages() {
+        UUID chatId = UUID.randomUUID();
+        when(chatPersistence.getMessages(chatId, "user@test.com")).thenReturn(List.of());
+        List<Message> result = chatService.getMessages(chatId, "user@test.com");
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void getMessages_shouldReturnMessagesFromPersistence() {
+        UUID chatId = UUID.randomUUID();
+        Message m1 = buildMessage(chatId, "Hola!");
+        Message m2 = buildMessage(chatId, "Todo bien?");
+        when(chatPersistence.getMessages(chatId, "user@test.com")).thenReturn(List.of(m1, m2));
+        List<Message> result = chatService.getMessages(chatId, "user@test.com");
+        assertEquals(2, result.size());
+        assertEquals("Hola!", result.get(0).getText());
+        assertEquals("Todo bien?", result.get(1).getText());
+    }
+
+    @Test
+    void getMessages_shouldPropagateForbiddenException() {
+        UUID chatId = UUID.randomUUID();
+        when(chatPersistence.getMessages(any(), eq("outsider@test.com")))
+                .thenThrow(new ForbiddenException("No tienes acceso"));
+        assertThrows(ForbiddenException.class,
+                () -> chatService.getMessages(chatId, "outsider@test.com"));
+    }
+
+    @Test
+    void getMessages_shouldPropagateNotFoundException_whenChatNotFound() {
+        UUID chatId = UUID.randomUUID();
+        when(chatPersistence.getMessages(any(), any()))
+                .thenThrow(new NotFoundException("Chat not found"));
+        assertThrows(NotFoundException.class,
+                () -> chatService.getMessages(chatId, "user@test.com"));
+    }
+
+    @Test
+    void getMessages_shouldNotCallSendMessage() {
+        UUID chatId = UUID.randomUUID();
+        when(chatPersistence.getMessages(any(), any())).thenReturn(List.of());
+        chatService.getMessages(chatId, "user@test.com");
+        verify(chatPersistence, never()).sendMessage(any(), any(), any());
     }
 
     // helpers --------------------------------------------------------------------

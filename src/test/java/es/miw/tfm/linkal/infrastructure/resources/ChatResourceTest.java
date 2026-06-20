@@ -192,6 +192,68 @@ public class ChatResourceTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    // GET /api/chats/{chatId}/messages ----------------------------------------------------------------
+
+    @Test
+    @WithMockUser(username = "user@test.com", roles = "INFLUENCER")
+    void getMessages_shouldReturn200WithEmptyList() throws Exception {
+        UUID chatId = UUID.randomUUID();
+        when(chatService.getMessages(eq(chatId), eq("user@test.com"))).thenReturn(List.of());
+        mockMvc.perform(get("/api/chats/{chatId}/messages", chatId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    @WithMockUser(username = "user@test.com", roles = "INFLUENCER")
+    void getMessages_shouldReturn200WithMessages() throws Exception {
+        UUID chatId = UUID.randomUUID();
+        Message m1 = buildMessage(chatId, "Hola!");
+        Message m2 = buildMessage(chatId, "Todo bien?");
+        when(chatService.getMessages(eq(chatId), eq("user@test.com"))).thenReturn(List.of(m1, m2));
+        mockMvc.perform(get("/api/chats/{chatId}/messages", chatId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].text").value("Hola!"))
+                .andExpect(jsonPath("$[1].text").value("Todo bien?"));
+    }
+
+    @Test
+    @WithMockUser(username = "outsider@test.com", roles = "INFLUENCER")
+    void getMessages_shouldReturn403_whenUserNotInChat() throws Exception {
+        when(chatService.getMessages(any(), eq("outsider@test.com")))
+                .thenThrow(new ForbiddenException("No tienes acceso"));
+        mockMvc.perform(get("/api/chats/{chatId}/messages", UUID.randomUUID()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "user@test.com", roles = "INFLUENCER")
+    void getMessages_shouldReturn404_whenChatNotFound() throws Exception {
+        when(chatService.getMessages(any(), any())).thenThrow(new NotFoundException("Chat not found"));
+        mockMvc.perform(get("/api/chats/{chatId}/messages", UUID.randomUUID()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void getMessages_shouldReturn401_whenNotAuthenticated() throws Exception {
+        mockMvc.perform(get("/api/chats/{chatId}/messages", UUID.randomUUID()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(username = "user@test.com", roles = "INFLUENCER")
+    void getMessages_shouldReturn200WithSenderIdAndSentAt() throws Exception {
+        UUID chatId = UUID.randomUUID();
+        Message msg = buildMessage(chatId, "Datos completos");
+        when(chatService.getMessages(eq(chatId), eq("user@test.com"))).thenReturn(List.of(msg));
+        mockMvc.perform(get("/api/chats/{chatId}/messages", chatId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].senderId").exists())
+                .andExpect(jsonPath("$[0].sentAt").exists());
+    }
+
     // helpers -------------------------------------------------------------------------------
 
     private Chat buildChatWithDisplayName(UUID matchId, String displayName, String lastMessage) {

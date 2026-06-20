@@ -25,4 +25,8 @@ public class ChatService {
     public Message sendMessage(UUID chatId, String text, String senderEmail) {
         return chatPersistence.sendMessage(chatId, text, senderEmail);
     }
+
+    public List<Message> getMessages(UUID chatId, String email) {
+        return chatPersistence.getMessages(chatId, email);
+    }
 }

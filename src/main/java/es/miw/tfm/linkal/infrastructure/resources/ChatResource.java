@@ -34,4 +34,11 @@ public class ChatResource {
         return ResponseEntity.status(201)
                 .body(chatService.sendMessage(chatId, request.getText(), authentication.getName()));
     }
+
+    @GetMapping("/{chatId}/messages")
+    @PreAuthorize("hasAnyRole('INFLUENCER','BUSINESS')")
+    public ResponseEntity<List<Message>> getMessages(@PathVariable UUID chatId,
+                                                     Authentication authentication) {
+        return ResponseEntity.ok(chatService.getMessages(chatId, authentication.getName()));
+    }
 }

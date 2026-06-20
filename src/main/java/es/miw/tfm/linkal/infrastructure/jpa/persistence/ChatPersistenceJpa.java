@@ -103,6 +103,23 @@ public class ChatPersistenceJpa implements ChatPersistence {
         return messageRepository.save(msg).toMessage();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<Message> getMessages(UUID chatId, String email) {
+        ChatEntity chat = chatRepository.findById(chatId)
+                .orElseThrow(() -> new NotFoundException("Chat not found: " + chatId));
+
+        UserEntity user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("User not found: " + email));
+
+        assertUserBelongsToChat(user.getId(), chat);
+
+        return messageRepository.findByChat_IdOrderBySentAtAsc(chatId)
+                .stream()
+                .map(MessageEntity::toMessage)
+                .toList();
+    }
+
     // Helpers ------------------------------------------------------------------------------------------
 
     private String buildChatName(MatchEntity match) {

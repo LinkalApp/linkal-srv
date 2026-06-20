@@ -512,6 +512,97 @@ public class ChatPersistenceJpaTest {
         assertEquals("Respuesta del server", result.getText());
     }
 
+    // ─── getMessages ──────────────────────────────────────────────────────────
+
+    @Test
+    void getMessages_shouldThrowNotFound_whenChatDoesNotExist() {
+        UUID chatId = UUID.randomUUID();
+        when(chatRepository.findById(chatId)).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class,
+                () -> chatPersistenceJpa.getMessages(chatId, "user@test.com"));
+        verify(messageRepository, never()).findByChat_IdOrderBySentAtAsc(any());
+    }
+
+    @Test
+    void getMessages_shouldThrowNotFound_whenUserDoesNotExist() {
+        UUID chatId = UUID.randomUUID();
+        MatchEntity match = buildCompletedMatch(UUID.randomUUID());
+        ChatEntity chat = buildChatEntity(match);
+
+        when(chatRepository.findById(chatId)).thenReturn(Optional.of(chat));
+        when(userRepository.findByEmail("unknown@test.com")).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class,
+                () -> chatPersistenceJpa.getMessages(chatId, "unknown@test.com"));
+    }
+
+    @Test
+    void getMessages_shouldThrowForbidden_whenUserNotInMatch() {
+        UUID chatId = UUID.randomUUID();
+        UUID strangerId = UUID.randomUUID();
+        UserEntity stranger = buildUser(strangerId, "stranger@test.com");
+        InfluencerEntity influencer = buildInfluencer("Ana");
+        BusinessEntity business = buildBusiness("Nike");
+        CampaignEntity campaign = buildCampaign("C");
+        campaign.setBusiness(business);
+        MatchEntity match = buildCompletedMatchWithDetails(UUID.randomUUID(), campaign, influencer);
+        ChatEntity chat = buildChatEntity(match);
+
+        when(chatRepository.findById(chatId)).thenReturn(Optional.of(chat));
+        when(userRepository.findByEmail("stranger@test.com")).thenReturn(Optional.of(stranger));
+
+        assertThrows(es.miw.tfm.linkal.domain.exceptions.ForbiddenException.class,
+                () -> chatPersistenceJpa.getMessages(chatId, "stranger@test.com"));
+    }
+
+    @Test
+    void getMessages_shouldReturnMessagesOrderedByDate() {
+        UUID chatId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UserEntity user = buildUser(userId, "user@test.com");
+        InfluencerEntity influencer = buildInfluencer("Ana");
+        influencer.setId(userId);
+        MatchEntity match = buildCompletedMatchWithDetails(UUID.randomUUID(), buildCampaign("C"), influencer);
+        ChatEntity chat = buildChatEntity(match);
+        chat.setId(chatId);
+        MessageEntity m1 = buildMessage(chat, "Hola", LocalDateTime.now().minusMinutes(5));
+        MessageEntity m2 = buildMessage(chat, "Que tal", LocalDateTime.now());
+
+        when(chatRepository.findById(chatId)).thenReturn(Optional.of(chat));
+        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(messageRepository.findByChat_IdOrderBySentAtAsc(chatId))
+                .thenReturn(List.of(m1, m2));
+
+        List<es.miw.tfm.linkal.domain.model.Message> result =
+                chatPersistenceJpa.getMessages(chatId, "user@test.com");
+
+        assertEquals(2, result.size());
+        assertEquals("Hola", result.get(0).getText());
+        assertEquals("Que tal", result.get(1).getText());
+    }
+
+    @Test
+    void getMessages_shouldReturnEmptyList_whenNoMessages() {
+        UUID chatId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UserEntity user = buildUser(userId, "user@test.com");
+        InfluencerEntity influencer = buildInfluencer("Ana");
+        influencer.setId(userId);
+        MatchEntity match = buildCompletedMatchWithDetails(UUID.randomUUID(), buildCampaign("C"), influencer);
+        ChatEntity chat = buildChatEntity(match);
+        chat.setId(chatId);
+
+        when(chatRepository.findById(chatId)).thenReturn(Optional.of(chat));
+        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(messageRepository.findByChat_IdOrderBySentAtAsc(chatId)).thenReturn(List.of());
+
+        List<es.miw.tfm.linkal.domain.model.Message> result =
+                chatPersistenceJpa.getMessages(chatId, "user@test.com");
+
+        assertTrue(result.isEmpty());
+    }
+
     // ------------------------------------------------------------------------
     //  helpers
     // ------------------------------------------------------------------------
