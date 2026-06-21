@@ -11,6 +11,10 @@ spring:
       connection-timeout: 30000
       maximum-pool-size: 10
       minimum-idle: 2
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      keepalive-time: 60000
+      connection-test-query: SELECT 1
   mail:
     username: ${MAILJET_API_KEY}
     password: ${MAILJET_SECRET_KEY}
