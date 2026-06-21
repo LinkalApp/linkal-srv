@@ -67,33 +67,33 @@ jobs:
       # ☁️ Subir ZIP a S3
       - name: ☁️ Upload ZIP to S3
         run: |
-          aws s3 cp deploy/deploy.zip 
+          aws s3 cp deploy/deploy.zip \
           s3://${{ env.S3_BUCKET }}/app-${{ github.sha }}.zip
 
       # 🆕 Crear nueva versión Elastic Beanstalk
       - name: 🆕 Create Elastic Beanstalk application version
         run: |
-          aws elasticbeanstalk create-application-version 
-            --application-name "${{ env.APPLICATION_NAME }}" 
-            --version-label "app-${{ github.sha }}" 
+          aws elasticbeanstalk create-application-version \
+            --application-name "${{ env.APPLICATION_NAME }}" \
+            --version-label "app-${{ github.sha }}" \
             --source-bundle S3Bucket="${{ env.S3_BUCKET }}",S3Key="app-${{ github.sha }}.zip"
 
       # 🚀 Desplegar nueva versión
       - name: 🚀 Deploy application
         run: |
-          aws elasticbeanstalk update-environment 
-            --environment-name "${{ env.ENVIRONMENT_NAME }}" 
+          aws elasticbeanstalk update-environment \
+            --environment-name "${{ env.ENVIRONMENT_NAME }}" \
             --version-label "app-${{ github.sha }}"
 
       # ⏳ Esperar a que termine el deploy
       - name: ⏳ Wait for deployment
         run: |
-          aws elasticbeanstalk wait environment-updated 
+          aws elasticbeanstalk wait environment-updated \
             --environment-name "${{ env.ENVIRONMENT_NAME }}"
 
       # ✅ Mostrar URL final
       - name: ✅ Deployment finished
         run: |
-          aws elasticbeanstalk describe-environments 
-            --environment-names "${{ env.ENVIRONMENT_NAME }}" 
+          aws elasticbeanstalk describe-environments \
+            --environment-names "${{ env.ENVIRONMENT_NAME }}" \
             --query "Environments[0].CNAME"
