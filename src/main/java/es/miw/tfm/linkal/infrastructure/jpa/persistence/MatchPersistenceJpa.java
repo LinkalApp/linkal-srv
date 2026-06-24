@@ -263,6 +263,43 @@ public class MatchPersistenceJpa implements MatchPersistence {
                 .toList();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<Match> findCompletedByCampaign(UUID campaignId, String businessEmail) {
+        BusinessEntity business = businessRepository.findByEmail(businessEmail)
+                .orElseThrow(() -> new NotFoundException("Business not found: " + businessEmail));
+
+        CampaignEntity campaign = campaignRepository.findById(campaignId)
+                .orElseThrow(() -> new NotFoundException("Campaign not found: " + campaignId));
+
+        if (!campaign.getBusiness().getId().equals(business.getId())) {
+            throw new ForbiddenException("No tienes permiso para ver los matches de esta campaña");
+        }
+
+        return matchRepository
+                .findByCampaign_IdAndStatus(campaignId, MatchStatus.COMPLETED)
+                .stream()
+                .map(e -> {
+                    Match match = e.toMatch();
+                    InfluencerEntity i = e.getInfluencer();
+                    if (i != null) {
+                        match.setInfluencerName(i.getName());
+                        match.setInfluencerArtisticName(i.getArtisticName());
+                        match.setInfluencerDescription(i.getDescription());
+                        match.setInfluencerEmail(i.getEmail());
+                        match.setInfluencerInstagram(i.getInstagram());
+                        match.setInfluencerTiktok(i.getTiktok());
+                        match.setInfluencerYoutube(i.getYoutube());
+                        match.setInfluencerVerified(i.getVerified());
+                        match.setInfluencerInterests(i.getInterests() != null
+                                ? new java.util.ArrayList<>(i.getInterests())
+                                : new java.util.ArrayList<>());
+                    }
+                    return match;
+                })
+                .toList();
+    }
+
     // Chat automático --------------------------------------------------------
 
     private void createChatForCompletedMatch(MatchEntity match) {

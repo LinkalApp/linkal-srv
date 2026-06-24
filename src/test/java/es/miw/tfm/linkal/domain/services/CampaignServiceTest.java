@@ -342,6 +342,60 @@ public class CampaignServiceTest {
         verify(campaignPersistence, never()).update(any(), any(), any());
     }
 
+    // --------------------------------------------------------------------------
+    //  startWithInfluencer
+    // ---------------------------------------------------------------------------
+
+    @Test
+    void startWithInfluencer_shouldDelegateToPersistence() {
+        UUID campaignId = UUID.randomUUID();
+        UUID matchId    = UUID.randomUUID();
+        Campaign inProgress = buildSavedCampaign();
+        inProgress.setStatus(CampaignStatus.IN_PROGRESS);
+
+        when(campaignPersistence.startWithInfluencer(campaignId, matchId, "business@test.com"))
+                .thenReturn(inProgress);
+
+        campaignService.startWithInfluencer(campaignId, matchId, "business@test.com");
+
+        verify(campaignPersistence).startWithInfluencer(campaignId, matchId, "business@test.com");
+    }
+
+    @Test
+    void startWithInfluencer_shouldReturnInProgressCampaign() {
+        UUID campaignId = UUID.randomUUID();
+        UUID matchId    = UUID.randomUUID();
+        Campaign inProgress = buildSavedCampaign();
+        inProgress.setStatus(CampaignStatus.IN_PROGRESS);
+
+        when(campaignPersistence.startWithInfluencer(any(), any(), any())).thenReturn(inProgress);
+
+        Campaign result = campaignService.startWithInfluencer(campaignId, matchId, "business@test.com");
+
+        assertNotNull(result);
+        assertEquals(CampaignStatus.IN_PROGRESS, result.getStatus());
+    }
+
+    @Test
+    void startWithInfluencer_shouldPassAllParamsToPersistence() {
+        UUID campaignId = UUID.randomUUID();
+        UUID matchId    = UUID.randomUUID();
+        when(campaignPersistence.startWithInfluencer(any(), any(), any())).thenReturn(buildSavedCampaign());
+
+        campaignService.startWithInfluencer(campaignId, matchId, "otro@empresa.com");
+
+        verify(campaignPersistence).startWithInfluencer(eq(campaignId), eq(matchId), eq("otro@empresa.com"));
+    }
+
+    @Test
+    void startWithInfluencer_shouldNotCallCreate() {
+        when(campaignPersistence.startWithInfluencer(any(), any(), any())).thenReturn(buildSavedCampaign());
+
+        campaignService.startWithInfluencer(UUID.randomUUID(), UUID.randomUUID(), "business@test.com");
+
+        verify(campaignPersistence, never()).create(any(), any());
+    }
+
     // ------------------------------------------------------------------------
     //  helpers
     // ------------------------------------------------------------------------

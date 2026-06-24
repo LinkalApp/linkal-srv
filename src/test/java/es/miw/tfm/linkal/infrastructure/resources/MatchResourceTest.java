@@ -370,6 +370,79 @@ public class MatchResourceTest {
     }
 
     // -------------------------------------------------------------------------
+    //  GET /api/matches/campaigns/{campaignId}
+    // -------------------------------------------------------------------------
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void findCompletedByCampaign_shouldReturn200WithList() throws Exception {
+        UUID campaignId = UUID.randomUUID();
+        when(matchService.findCompletedByCampaign(eq(campaignId), eq("business@test.com")))
+                .thenReturn(List.of(buildCompletedMatch(campaignId)));
+
+        mockMvc.perform(get("/api/matches/campaigns/{campaignId}", campaignId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].status").value("COMPLETED"));
+    }
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void findCompletedByCampaign_shouldReturn200WithEmptyList() throws Exception {
+        when(matchService.findCompletedByCampaign(any(), any())).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/matches/campaigns/{campaignId}", UUID.randomUUID()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    void findCompletedByCampaign_shouldReturn401WhenNotAuthenticated() throws Exception {
+        mockMvc.perform(get("/api/matches/campaigns/{campaignId}", UUID.randomUUID()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void findCompletedByCampaign_shouldReturn403WhenNotBusiness() throws Exception {
+        mockMvc.perform(get("/api/matches/campaigns/{campaignId}", UUID.randomUUID()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "other@test.com", roles = "BUSINESS")
+    void findCompletedByCampaign_shouldReturn403WhenForbiddenException() throws Exception {
+        when(matchService.findCompletedByCampaign(any(), eq("other@test.com")))
+                .thenThrow(new ForbiddenException("No tienes permiso"));
+
+        mockMvc.perform(get("/api/matches/campaigns/{campaignId}", UUID.randomUUID()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void findCompletedByCampaign_shouldReturn404WhenCampaignNotFound() throws Exception {
+        when(matchService.findCompletedByCampaign(any(), any()))
+                .thenThrow(new NotFoundException("Campaign not found"));
+
+        mockMvc.perform(get("/api/matches/campaigns/{campaignId}", UUID.randomUUID()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void findCompletedByCampaign_shouldReturn200WithMultipleMatches() throws Exception {
+        UUID campaignId = UUID.randomUUID();
+        when(matchService.findCompletedByCampaign(any(), any()))
+                .thenReturn(List.of(buildCompletedMatch(campaignId), buildCompletedMatch(campaignId)));
+
+        mockMvc.perform(get("/api/matches/campaigns/{campaignId}", campaignId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2));
+    }
+
+
+    // -------------------------------------------------------------------------
     //  helpers
     // -------------------------------------------------------------------------
 

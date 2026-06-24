@@ -3,6 +3,7 @@ package es.miw.tfm.linkal.infrastructure.resources;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import es.miw.tfm.linkal.configuration.JwtService;
 import es.miw.tfm.linkal.configuration.SecurityConfiguration;
+import es.miw.tfm.linkal.domain.exceptions.ConflictException;
 import es.miw.tfm.linkal.domain.exceptions.ForbiddenException;
 import es.miw.tfm.linkal.domain.exceptions.NotFoundException;
 import es.miw.tfm.linkal.domain.model.Campaign;
@@ -419,6 +420,86 @@ public class CampaignResourceTest {
         mockMvc.perform(delete("/api/campaigns/" + id)
                         .with(csrf()))
                 .andExpect(status().isNotFound());
+    }
+
+    // -------------------------------------------------------------------------
+    //  PUT /api/campaigns/{campaignId}/start/{matchId} — iniciar campaña
+    // -------------------------------------------------------------------------
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void startWithInfluencer_shouldReturn200WithInProgressCampaign() throws Exception {
+        UUID campaignId = UUID.randomUUID();
+        UUID matchId    = UUID.randomUUID();
+        Campaign inProgress = buildSavedCampaign();
+        inProgress.setStatus(CampaignStatus.IN_PROGRESS);
+
+        when(campaignService.startWithInfluencer(eq(campaignId), eq(matchId), eq("business@test.com")))
+                .thenReturn(inProgress);
+
+        mockMvc.perform(put("/api/campaigns/{campaignId}/start/{matchId}", campaignId, matchId)
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
+    }
+
+    @Test
+    void startWithInfluencer_shouldReturn401WhenNotAuthenticated() throws Exception {
+        mockMvc.perform(put("/api/campaigns/{campaignId}/start/{matchId}",
+                        UUID.randomUUID(), UUID.randomUUID()).with(csrf()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void startWithInfluencer_shouldReturn403WhenNotBusiness() throws Exception {
+        mockMvc.perform(put("/api/campaigns/{campaignId}/start/{matchId}",
+                        UUID.randomUUID(), UUID.randomUUID()).with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "other@test.com", roles = "BUSINESS")
+    void startWithInfluencer_shouldReturn403WhenForbiddenException() throws Exception {
+        when(campaignService.startWithInfluencer(any(), any(), eq("other@test.com")))
+                .thenThrow(new ForbiddenException("No tienes permiso para iniciar esta campaña"));
+
+        mockMvc.perform(put("/api/campaigns/{campaignId}/start/{matchId}",
+                        UUID.randomUUID(), UUID.randomUUID()).with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void startWithInfluencer_shouldReturn404WhenCampaignNotFound() throws Exception {
+        when(campaignService.startWithInfluencer(any(), any(), any()))
+                .thenThrow(new NotFoundException("Campaign not found"));
+
+        mockMvc.perform(put("/api/campaigns/{campaignId}/start/{matchId}",
+                        UUID.randomUUID(), UUID.randomUUID()).with(csrf()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void startWithInfluencer_shouldReturn404WhenMatchNotFound() throws Exception {
+        when(campaignService.startWithInfluencer(any(), any(), any()))
+                .thenThrow(new NotFoundException("Match not found"));
+
+        mockMvc.perform(put("/api/campaigns/{campaignId}/start/{matchId}",
+                        UUID.randomUUID(), UUID.randomUUID()).with(csrf()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void startWithInfluencer_shouldReturn409WhenCampaignNotOpen() throws Exception {
+        when(campaignService.startWithInfluencer(any(), any(), any()))
+                .thenThrow(new ConflictException("La campaña no está en estado OPEN"));
+
+        mockMvc.perform(put("/api/campaigns/{campaignId}/start/{matchId}",
+                        UUID.randomUUID(), UUID.randomUUID()).with(csrf()))
+                .andExpect(status().isConflict());
     }
 
     // --------------------------------------------------------------------------

@@ -41,4 +41,8 @@ public class MatchService {
     public List<Match> findCompletedByBusiness(String businessEmail) {
         return matchPersistence.findCompletedByBusiness(businessEmail);
     }
+
+    public List<Match> findCompletedByCampaign(UUID campaignId, String businessEmail) {
+        return matchPersistence.findCompletedByCampaign(campaignId, businessEmail);
+    }
 }

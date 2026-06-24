@@ -1,13 +1,16 @@
 package es.miw.tfm.linkal.infrastructure.jpa.persistence;
 
+import es.miw.tfm.linkal.domain.exceptions.ConflictException;
 import es.miw.tfm.linkal.domain.exceptions.ForbiddenException;
 import es.miw.tfm.linkal.domain.exceptions.NotFoundException;
 import es.miw.tfm.linkal.domain.model.Campaign;
 import es.miw.tfm.linkal.domain.model.enums.CampaignStatus;
 import es.miw.tfm.linkal.infrastructure.jpa.entities.BusinessEntity;
 import es.miw.tfm.linkal.infrastructure.jpa.entities.CampaignEntity;
+import es.miw.tfm.linkal.infrastructure.jpa.entities.MatchEntity;
 import es.miw.tfm.linkal.infrastructure.jpa.repositories.BusinessRepository;
 import es.miw.tfm.linkal.infrastructure.jpa.repositories.CampaignRepository;
+import es.miw.tfm.linkal.infrastructure.jpa.repositories.MatchRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -29,7 +32,8 @@ import static org.mockito.Mockito.*;
 public class CampaignPersistenceJpaTest {
     @Mock
     private CampaignRepository campaignRepository;
-
+    @Mock
+    private MatchRepository matchRepository;
     @Mock
     private BusinessRepository businessRepository;
 
@@ -507,6 +511,112 @@ public class CampaignPersistenceJpaTest {
         verify(campaignRepository, never()).save(any());
     }
 
+    // --------------------------------------------------------------------------
+    //  startWithInfluencer
+    // ---------------------------------------------------------------------------
+
+    @Test
+    void startWithInfluencer_shouldThrowNotFoundWhenCampaignDoesNotExist() {
+        UUID campaignId = UUID.randomUUID();
+        when(campaignRepository.findById(campaignId)).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class,
+                () -> campaignPersistenceJpa.startWithInfluencer(campaignId, UUID.randomUUID(), "owner@test.com"));
+        verify(campaignRepository, never()).save(any());
+    }
+
+    @Test
+    void startWithInfluencer_shouldThrowForbiddenWhenNotOwner() {
+        BusinessEntity owner = buildBusinessEntity("owner@test.com");
+        CampaignEntity campaign = buildCampaignEntity(owner);
+        when(campaignRepository.findById(campaign.getId())).thenReturn(Optional.of(campaign));
+
+        assertThrows(ForbiddenException.class,
+                () -> campaignPersistenceJpa.startWithInfluencer(campaign.getId(), UUID.randomUUID(), "other@test.com"));
+        verify(campaignRepository, never()).save(any());
+    }
+
+    @Test
+    void startWithInfluencer_shouldThrowConflictWhenCampaignNotOpen() {
+        BusinessEntity owner = buildBusinessEntity("owner@test.com");
+        CampaignEntity campaign = buildCampaignEntity(owner);
+        campaign.setStatus(CampaignStatus.IN_PROGRESS);
+        when(campaignRepository.findById(campaign.getId())).thenReturn(Optional.of(campaign));
+
+        assertThrows(ConflictException.class,
+                () -> campaignPersistenceJpa.startWithInfluencer(campaign.getId(), UUID.randomUUID(), "owner@test.com"));
+        verify(campaignRepository, never()).save(any());
+    }
+
+    @Test
+    void startWithInfluencer_shouldThrowNotFoundWhenMatchDoesNotExist() {
+        BusinessEntity owner = buildBusinessEntity("owner@test.com");
+        CampaignEntity campaign = buildCampaignEntity(owner);
+        UUID matchId = UUID.randomUUID();
+        when(campaignRepository.findById(campaign.getId())).thenReturn(Optional.of(campaign));
+        when(matchRepository.findById(matchId)).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class,
+                () -> campaignPersistenceJpa.startWithInfluencer(campaign.getId(), matchId, "owner@test.com"));
+        verify(campaignRepository, never()).save(any());
+    }
+
+    @Test
+    void startWithInfluencer_shouldThrowForbiddenWhenMatchNotBelongToCampaign() {
+        BusinessEntity owner = buildBusinessEntity("owner@test.com");
+        CampaignEntity campaign = buildCampaignEntity(owner);
+        CampaignEntity otherCamp = buildCampaignEntity(owner);
+        MatchEntity match = buildMatchEntity(otherCamp);
+
+        when(campaignRepository.findById(campaign.getId())).thenReturn(Optional.of(campaign));
+        when(matchRepository.findById(match.getId())).thenReturn(Optional.of(match));
+
+        assertThrows(ForbiddenException.class,
+                () -> campaignPersistenceJpa.startWithInfluencer(campaign.getId(), match.getId(), "owner@test.com"));
+        verify(campaignRepository, never()).save(any());
+    }
+
+    @Test
+    void startWithInfluencer_shouldDeleteOtherMatchesAndSaveCampaign() {
+        BusinessEntity owner = buildBusinessEntity("owner@test.com");
+        CampaignEntity campaign = buildCampaignEntity(owner);
+
+        MatchEntity selected = buildMatchEntity(campaign);
+        MatchEntity other1 = buildMatchEntity(campaign);
+        MatchEntity other2 = buildMatchEntity(campaign);
+
+        when(campaignRepository.findById(campaign.getId())).thenReturn(Optional.of(campaign));
+        when(matchRepository.findById(selected.getId())).thenReturn(Optional.of(selected));
+        when(matchRepository.findAllByCampaign_Id(campaign.getId()))
+                .thenReturn(List.of(selected, other1, other2));
+        when(campaignRepository.save(campaign)).thenReturn(campaign);
+
+        campaignPersistenceJpa.startWithInfluencer(campaign.getId(), selected.getId(), "owner@test.com");
+
+        verify(matchRepository).delete(other1);
+        verify(matchRepository).delete(other2);
+        verify(matchRepository, never()).delete(selected);
+        verify(campaignRepository).save(campaign);
+        assertEquals(CampaignStatus.IN_PROGRESS, campaign.getStatus());
+    }
+
+    @Test
+    void startWithInfluencer_shouldReturnCampaignWithInProgressStatus() {
+        BusinessEntity owner = buildBusinessEntity("owner@test.com");
+        CampaignEntity campaign = buildCampaignEntity(owner);
+        MatchEntity selected = buildMatchEntity(campaign);
+
+        when(campaignRepository.findById(campaign.getId())).thenReturn(Optional.of(campaign));
+        when(matchRepository.findById(selected.getId())).thenReturn(Optional.of(selected));
+        when(matchRepository.findAllByCampaign_Id(campaign.getId())).thenReturn(List.of(selected));
+        when(campaignRepository.save(any())).thenReturn(campaign);
+
+        Campaign result = campaignPersistenceJpa.startWithInfluencer(campaign.getId(), selected.getId(), "owner@test.com");
+
+        assertNotNull(result);
+        assertEquals(CampaignStatus.IN_PROGRESS, campaign.getStatus());
+    }
+
     // ------------------------------------------------------------------------
     //  helpers
     // ------------------------------------------------------------------------
@@ -548,5 +658,12 @@ public class CampaignPersistenceJpaTest {
         entity.setMatches(new ArrayList<>());
         entity.setChats(new ArrayList<>());
         return entity;
+    }
+
+    private MatchEntity buildMatchEntity(CampaignEntity campaign) {
+        MatchEntity match = new MatchEntity();
+        match.setId(UUID.randomUUID());
+        match.setCampaign(campaign);
+        return match;
     }
 }

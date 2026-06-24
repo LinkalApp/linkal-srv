@@ -350,6 +350,52 @@ public class MatchServiceTest {
     }
 
     // -------------------------------------------------------------------------
+    //  findCompletedByCampaign
+    // -------------------------------------------------------------------------
+
+    @Test
+    void findCompletedByCampaign_shouldDelegateToPersistence() {
+        UUID campaignId = UUID.randomUUID();
+        when(matchPersistence.findCompletedByCampaign(campaignId, "business@test.com")).thenReturn(List.of());
+        matchService.findCompletedByCampaign(campaignId, "business@test.com");
+        verify(matchPersistence).findCompletedByCampaign(campaignId, "business@test.com");
+    }
+
+    @Test
+    void findCompletedByCampaign_shouldReturnEmptyList() {
+        UUID campaignId = UUID.randomUUID();
+        when(matchPersistence.findCompletedByCampaign(campaignId, "business@test.com")).thenReturn(List.of());
+        assertTrue(matchService.findCompletedByCampaign(campaignId, "business@test.com").isEmpty());
+    }
+
+    @Test
+    void findCompletedByCampaign_shouldReturnMatches() {
+        UUID campaignId = UUID.randomUUID();
+        when(matchPersistence.findCompletedByCampaign(campaignId, "business@test.com"))
+                .thenReturn(List.of(buildCompletedMatch(campaignId)));
+        List<Match> result = matchService.findCompletedByCampaign(campaignId, "business@test.com");
+        assertEquals(1, result.size());
+        assertEquals(MatchStatus.COMPLETED, result.get(0).getStatus());
+        assertEquals(campaignId, result.get(0).getCampaignId());
+    }
+
+    @Test
+    void findCompletedByCampaign_shouldPassAllParamsToPersistence() {
+        UUID campaignId = UUID.randomUUID();
+        when(matchPersistence.findCompletedByCampaign(any(), any())).thenReturn(List.of());
+        matchService.findCompletedByCampaign(campaignId, "otro@empresa.com");
+        verify(matchPersistence).findCompletedByCampaign(eq(campaignId), eq("otro@empresa.com"));
+    }
+
+    @Test
+    void findCompletedByCampaign_shouldNotCallFindCompletedByBusiness() {
+        UUID campaignId = UUID.randomUUID();
+        when(matchPersistence.findCompletedByCampaign(any(), any())).thenReturn(List.of());
+        matchService.findCompletedByCampaign(campaignId, "business@test.com");
+        verify(matchPersistence, never()).findCompletedByBusiness(any());
+    }
+
+    // -------------------------------------------------------------------------
     //  helpers
     // -------------------------------------------------------------------------
 
