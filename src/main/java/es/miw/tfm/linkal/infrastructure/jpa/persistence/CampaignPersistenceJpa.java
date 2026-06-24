@@ -1,5 +1,6 @@
 package es.miw.tfm.linkal.infrastructure.jpa.persistence;
 
+import es.miw.tfm.linkal.domain.exceptions.ConflictException;
 import es.miw.tfm.linkal.domain.exceptions.ForbiddenException;
 import es.miw.tfm.linkal.domain.exceptions.NotFoundException;
 import es.miw.tfm.linkal.domain.model.Business;
@@ -9,8 +10,10 @@ import es.miw.tfm.linkal.domain.model.enums.CampaignStatus;
 import es.miw.tfm.linkal.domain.persistence.CampaignPersistence;
 import es.miw.tfm.linkal.infrastructure.jpa.entities.BusinessEntity;
 import es.miw.tfm.linkal.infrastructure.jpa.entities.CampaignEntity;
+import es.miw.tfm.linkal.infrastructure.jpa.entities.MatchEntity;
 import es.miw.tfm.linkal.infrastructure.jpa.repositories.BusinessRepository;
 import es.miw.tfm.linkal.infrastructure.jpa.repositories.CampaignRepository;
+import es.miw.tfm.linkal.infrastructure.jpa.repositories.MatchRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +26,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class CampaignPersistenceJpa implements CampaignPersistence {
     private final CampaignRepository campaignRepository;
+    private final MatchRepository matchRepository;
     private final BusinessRepository businessRepository;
 
     @Override
@@ -115,5 +119,40 @@ public class CampaignPersistenceJpa implements CampaignPersistence {
                     return campaign;
                 })
                 .toList();
+    }
+
+    @Override
+    @Transactional
+    public Campaign startWithInfluencer(UUID campaignId, UUID matchId, String businessEmail) {
+        CampaignEntity campaign = campaignRepository.findById(campaignId)
+                .orElseThrow(() -> new NotFoundException("Campaign not found: " + campaignId));
+
+        if (!campaign.getBusiness().getEmail().equals(businessEmail)) {
+            throw new ForbiddenException("No tienes permiso para iniciar esta campaña");
+        }
+
+        if (campaign.getStatus() != CampaignStatus.OPEN) {
+            throw new ConflictException("La campaña no está en estado OPEN");
+        }
+
+        MatchEntity selectedMatch = matchRepository.findById(matchId)
+                .orElseThrow(() -> new NotFoundException("Match not found: " + matchId));
+
+        if (!selectedMatch.getCampaign().getId().equals(campaignId)) {
+            throw new ForbiddenException("El match no pertenece a esta campaña");
+        }
+
+        // Eliminar todos los otros matches (y sus chats) de esta campaña
+        List<MatchEntity> allMatches = matchRepository.findAllByCampaign_Id(campaignId);
+        for (MatchEntity match : allMatches) {
+            if (!match.getId().equals(matchId)) {
+                matchRepository.delete(match);
+            }
+        }
+
+        // Poner campaña en IN_PROGRESS
+        campaign.setStatus(CampaignStatus.IN_PROGRESS);
+        Campaign saved = campaignRepository.save(campaign).toCampaign();
+        return saved;
     }
 }

@@ -16,4 +16,5 @@ public interface MatchPersistence {
     List<Match> findPendingByBusiness(String businessEmail);
     List<Match> findCompletedByInfluencer(String influencerEmail);
     List<Match> findCompletedByBusiness(String businessEmail);
+    List<Match> findCompletedByCampaign(UUID campaignId, String businessEmail);
 }

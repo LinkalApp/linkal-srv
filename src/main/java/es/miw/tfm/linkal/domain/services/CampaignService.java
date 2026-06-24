@@ -33,4 +33,8 @@ public class CampaignService {
     public void delete(UUID id, String businessEmail) {
         campaignPersistence.delete(id, businessEmail);
     }
+
+    public Campaign startWithInfluencer(UUID campaignId, UUID matchId, String businessEmail) {
+        return campaignPersistence.startWithInfluencer(campaignId, matchId, businessEmail);
+    }
 }

@@ -66,5 +66,12 @@ public class MatchResource {
                 : matchService.findCompletedByInfluencer(authentication.getName());
         return ResponseEntity.ok(result);
     }
+
+    @GetMapping("/campaigns/{campaignId}")
+    @PreAuthorize("hasRole('BUSINESS')")
+    public ResponseEntity<List<Match>> findCompletedByCampaign(@PathVariable UUID campaignId,
+                                                               Authentication authentication) {
+        return ResponseEntity.ok(matchService.findCompletedByCampaign(campaignId, authentication.getName()));
+    }
 }
 

@@ -58,4 +58,12 @@ public class CampaignResource {
         }
         return ResponseEntity.ok(result);
     }
+
+    @PutMapping("/{campaignId}/start/{matchId}")
+    @PreAuthorize("hasRole('BUSINESS')")
+    public ResponseEntity<Campaign> startWithInfluencer(@PathVariable UUID campaignId,
+                                                        @PathVariable UUID matchId,
+                                                        Authentication authentication) {
+        return ResponseEntity.ok(campaignService.startWithInfluencer(campaignId, matchId, authentication.getName()));
+    }
 }

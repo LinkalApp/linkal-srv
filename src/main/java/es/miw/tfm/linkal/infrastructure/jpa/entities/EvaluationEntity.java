@@ -36,6 +36,7 @@ public class EvaluationEntity {
     public Evaluation toEvaluation() {
         Evaluation evaluation = new Evaluation();
         BeanUtils.copyProperties(this, evaluation);
+        evaluation.setValuedUserId(this.idUserValued);
         if (this.match != null) {
             evaluation.setMatchId(this.match.getId());
         }

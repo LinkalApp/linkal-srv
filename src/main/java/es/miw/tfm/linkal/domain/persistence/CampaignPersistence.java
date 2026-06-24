@@ -12,4 +12,5 @@ public interface CampaignPersistence {
     List<Campaign> findOpenByFilters(String category, String province);
     Campaign update(UUID id, Campaign campaign, String businessEmail);
     void delete(UUID id, String businessEmail);
+    Campaign startWithInfluencer(UUID campaignId, UUID matchId, String businessEmail);
 }
