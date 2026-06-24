@@ -184,6 +184,112 @@ class EvaluationResourceTest {
                 .andExpect(jsonPath("$.valuedUserId").value(influencerId.toString()));
     }
 
+    // -------------------------------------------------------------------------
+    //  POST /api/evaluations/matches/{matchId}/influencer — influencer valora comercio
+    // --------------------------------------------------------------------------
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void createByInfluencer_shouldReturn201WhenDataIsValid() throws Exception {
+        UUID matchId = UUID.randomUUID();
+        Evaluation saved = buildSavedEvaluation(matchId, 4);
+
+        when(evaluationService.createByInfluencer(any(), eq(matchId), eq("influencer@test.com"))).thenReturn(saved);
+
+        mockMvc.perform(post("/api/evaluations/matches/{matchId}/influencer", matchId)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(buildEvaluationRequest(4))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").exists())
+                .andExpect(jsonPath("$.score").value(4));
+    }
+
+    @Test
+    void createByInfluencer_shouldReturn401WhenNotAuthenticated() throws Exception {
+        mockMvc.perform(post("/api/evaluations/matches/{matchId}/influencer", UUID.randomUUID())
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(buildEvaluationRequest(3))))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void createByInfluencer_shouldReturn403WhenNotInfluencer() throws Exception {
+        mockMvc.perform(post("/api/evaluations/matches/{matchId}/influencer", UUID.randomUUID())
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(buildEvaluationRequest(3))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void createByInfluencer_shouldReturn403WhenForbiddenException() throws Exception {
+        when(evaluationService.createByInfluencer(any(), any(), eq("influencer@test.com")))
+                .thenThrow(new ForbiddenException("No eres el influencer de este match"));
+
+        mockMvc.perform(post("/api/evaluations/matches/{matchId}/influencer", UUID.randomUUID())
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(buildEvaluationRequest(3))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void createByInfluencer_shouldReturn404WhenMatchNotFound() throws Exception {
+        UUID matchId = UUID.randomUUID();
+        when(evaluationService.createByInfluencer(any(), eq(matchId), any()))
+                .thenThrow(new NotFoundException("Match not found: " + matchId));
+
+        mockMvc.perform(post("/api/evaluations/matches/{matchId}/influencer", matchId)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(buildEvaluationRequest(3))))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void createByInfluencer_shouldReturn404WhenInfluencerNotFound() throws Exception {
+        when(evaluationService.createByInfluencer(any(), any(), any()))
+                .thenThrow(new NotFoundException("Influencer not found"));
+
+        mockMvc.perform(post("/api/evaluations/matches/{matchId}/influencer", UUID.randomUUID())
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(buildEvaluationRequest(3))))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void createByInfluencer_shouldReturn409WhenAlreadyRated() throws Exception {
+        when(evaluationService.createByInfluencer(any(), any(), any()))
+                .thenThrow(new ConflictException("Ya has valorado al comercio de este match"));
+
+        mockMvc.perform(post("/api/evaluations/matches/{matchId}/influencer", UUID.randomUUID())
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(buildEvaluationRequest(3))))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void createByInfluencer_shouldReturn409WhenCampaignNotClosed() throws Exception {
+        when(evaluationService.createByInfluencer(any(), any(), any()))
+                .thenThrow(new ConflictException("La campaña debe estar CLOSED para poder valorar"));
+
+        mockMvc.perform(post("/api/evaluations/matches/{matchId}/influencer", UUID.randomUUID())
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(buildEvaluationRequest(3))))
+                .andExpect(status().isConflict());
+    }
+
     // ------------------------------------------------------------------------
     //  helpers
     // -------------------------------------------------------------------------

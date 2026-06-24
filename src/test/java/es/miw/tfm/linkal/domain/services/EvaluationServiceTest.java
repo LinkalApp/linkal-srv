@@ -99,6 +99,67 @@ class EvaluationServiceTest {
         assertEquals(1, result.getScore());
     }
 
+    // --------------------------------------------------------------------------
+    //  createByInfluencer
+    // ---------------------------------------------------------------------------
+
+    @Test
+    void createByInfluencer_shouldDelegateToPersistence() {
+        Evaluation evaluation = buildEvaluation();
+        UUID matchId = UUID.randomUUID();
+        when(evaluationPersistence.createByInfluencer(evaluation, matchId, "influencer@test.com")).thenReturn(buildSavedEvaluation());
+
+        evaluationService.createByInfluencer(evaluation, matchId, "influencer@test.com");
+
+        verify(evaluationPersistence).createByInfluencer(evaluation, matchId, "influencer@test.com");
+    }
+
+    @Test
+    void createByInfluencer_shouldReturnEvaluationFromPersistence() {
+        Evaluation evaluation = buildEvaluation();
+        UUID matchId = UUID.randomUUID();
+        Evaluation saved = buildSavedEvaluation();
+
+        when(evaluationPersistence.createByInfluencer(any(), eq(matchId), any())).thenReturn(saved);
+
+        Evaluation result = evaluationService.createByInfluencer(evaluation, matchId, "influencer@test.com");
+
+        assertNotNull(result);
+        assertEquals(saved.getId(), result.getId());
+        assertEquals(5, result.getScore());
+    }
+
+    @Test
+    void createByInfluencer_shouldPassEmailToPersistence() {
+        UUID matchId = UUID.randomUUID();
+        when(evaluationPersistence.createByInfluencer(any(), any(), any())).thenReturn(buildSavedEvaluation());
+
+        evaluationService.createByInfluencer(buildEvaluation(), matchId, "otro@influencer.com");
+
+        verify(evaluationPersistence).createByInfluencer(any(), eq(matchId), eq("otro@influencer.com"));
+    }
+
+    @Test
+    void createByInfluencer_shouldPassMatchIdToPersistence() {
+        UUID matchId = UUID.randomUUID();
+        when(evaluationPersistence.createByInfluencer(any(), any(), any())).thenReturn(buildSavedEvaluation());
+
+        evaluationService.createByInfluencer(buildEvaluation(), matchId, "influencer@test.com");
+
+        verify(evaluationPersistence).createByInfluencer(any(), eq(matchId), any());
+    }
+
+    @Test
+    void createByInfluencer_shouldNotCallCreate() {
+        UUID matchId = UUID.randomUUID();
+        when(evaluationPersistence.createByInfluencer(any(), any(), any())).thenReturn(buildSavedEvaluation());
+
+        evaluationService.createByInfluencer(buildEvaluation(), matchId, "influencer@test.com");
+
+        verify(evaluationPersistence, never()).create(any(), any(), any());
+    }
+
+
     // ----------------------------------------------------------------------------
     //  helpers
     // ---------------------------------------------------------------------------
