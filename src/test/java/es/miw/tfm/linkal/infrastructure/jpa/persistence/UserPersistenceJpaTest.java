@@ -189,6 +189,62 @@ public class UserPersistenceJpaTest {
         assertThrows(NotFoundException.class, () -> userPersistenceJpa.findById(id));
     }
 
+    // --------------------------------------------------------------------------
+    //  updateVerified
+    // --------------------------------------------------------------------------
+
+    @Test
+    void updateVerified_setsVerifiedAndSaves() {
+        UUID id = UUID.randomUUID();
+        InfluencerEntity entity = buildInfluencerEntity();
+        entity.setId(id);
+        entity.setVerified(false);
+        when(userRepository.findById(id)).thenReturn(Optional.of(entity));
+        when(userRepository.save(entity)).thenReturn(entity);
+
+        AdminUserDetail result = userPersistenceJpa.updateVerified(id, true);
+
+        verify(userRepository).save(entity);
+        assertNotNull(result);
+    }
+
+    @Test
+    void updateVerified_entityVerifiedFieldIsUpdated() {
+        UUID id = UUID.randomUUID();
+        InfluencerEntity entity = buildInfluencerEntity();
+        entity.setId(id);
+        entity.setVerified(false);
+        when(userRepository.findById(id)).thenReturn(Optional.of(entity));
+        when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        userPersistenceJpa.updateVerified(id, true);
+
+        verify(userRepository).save(argThat(e -> Boolean.TRUE.equals(e.getVerified())));
+    }
+
+    @Test
+    void updateVerified_throwsNotFoundWhenMissing() {
+        UUID id = UUID.randomUUID();
+        when(userRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class, () -> userPersistenceJpa.updateVerified(id, true));
+    }
+
+    @Test
+    void updateVerified_returnsMappedDetail() {
+        UUID id = UUID.randomUUID();
+        BusinessEntity entity = buildBusinessEntity();
+        entity.setId(id);
+        entity.setVerified(false);
+        when(userRepository.findById(id)).thenReturn(Optional.of(entity));
+        when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        AdminUserDetail result = userPersistenceJpa.updateVerified(id, true);
+
+        assertEquals(RoleType.BUSINESS, result.getRole());
+        assertEquals(id, result.getId());
+    }
+
     // ---------------------------------------------------------------------------
     //  helpers
     // ---------------------------------------------------------------------------

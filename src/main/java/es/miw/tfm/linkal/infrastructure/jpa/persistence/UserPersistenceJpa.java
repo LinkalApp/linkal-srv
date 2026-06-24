@@ -37,6 +37,15 @@ public class UserPersistenceJpa implements UserPersistence {
         return toAdminUserDetail(entity);
     }
 
+    @Override
+    public AdminUserDetail updateVerified(UUID id, Boolean verified) {
+        UserEntity entity = userRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("User not found: " + id));
+        entity.setVerified(verified);
+        UserEntity saved = userRepository.save(entity);
+        return toAdminUserDetail(saved);
+    }
+
     // Helpers --------------------------------------------------------------------------
 
     private AdminUserDetail toAdminUserDetail(UserEntity entity) {

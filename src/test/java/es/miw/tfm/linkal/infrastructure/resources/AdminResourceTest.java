@@ -23,6 +23,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(AdminResource.class)
@@ -197,9 +198,52 @@ public class AdminResourceTest {
                 .andExpect(jsonPath("$.interests.length()").value(2));
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // ------------------------------------------------------------------------
+    //  PATCH /api/admin/users/{id}/verify
+    // -------------------------------------------------------------------------
+
+    @Test
+    @WithMockUser(username = "admin@linkal.es", roles = "ADMIN")
+    void updateVerified_shouldReturn200WithUpdatedUser() throws Exception {
+        UUID id = UUID.randomUUID();
+        AdminUserDetail detail = buildDetail(id, "Laura", RoleType.INFLUENCER);
+        detail.setVerified(true);
+
+        when(userService.updateVerified(eq(id), eq(true))).thenReturn(detail);
+
+        mockMvc.perform(patch("/api/admin/users/{id}/verify", id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id.toString()))
+                .andExpect(jsonPath("$.verified").value(true));
+    }
+
+    @Test
+    void updateVerified_shouldReturn401WhenNotAuthenticated() throws Exception {
+        mockMvc.perform(patch("/api/admin/users/{id}/verify", UUID.randomUUID()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void updateVerified_shouldReturn403WhenInfluencer() throws Exception {
+        mockMvc.perform(patch("/api/admin/users/{id}/verify", UUID.randomUUID()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "admin@linkal.es", roles = "ADMIN")
+    void updateVerified_shouldReturn404WhenUserNotFound() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(userService.updateVerified(eq(id), any()))
+                .thenThrow(new NotFoundException("User not found: " + id));
+
+        mockMvc.perform(patch("/api/admin/users/{id}/verify", id))
+                .andExpect(status().isNotFound());
+    }
+
+    // -------------------------------------------------------------------------
     //  helpers
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
 
     private AdminUserDetail buildDetail(UUID id, String name, RoleType role) {
         return AdminUserDetail.builder()
