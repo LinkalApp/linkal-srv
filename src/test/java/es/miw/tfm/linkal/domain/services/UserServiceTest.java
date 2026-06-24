@@ -124,6 +124,44 @@ public class UserServiceTest {
         verify(userPersistence, never()).findAll(any(), any());
     }
 
+    // -------------------------------------------------------------------------
+    //  updateVerified
+    // -------------------------------------------------------------------------
+
+    @Test
+    void updateVerified_shouldDelegateToPersistence() {
+        UUID id = UUID.randomUUID();
+        AdminUserDetail expected = buildDetail(RoleType.INFLUENCER);
+        when(userPersistence.updateVerified(id, true)).thenReturn(expected);
+
+        userService.updateVerified(id, true);
+
+        verify(userPersistence).updateVerified(id, true);
+    }
+
+    @Test
+    void updateVerified_returnsUpdatedDetail() {
+        UUID id = UUID.randomUUID();
+        AdminUserDetail expected = AdminUserDetail.builder()
+                .id(id).name("Test").email("t@t.com").verified(true).role(RoleType.INFLUENCER).build();
+        when(userPersistence.updateVerified(id, true)).thenReturn(expected);
+
+        AdminUserDetail result = userService.updateVerified(id, true);
+
+        assertNotNull(result);
+        assertTrue(result.getVerified());
+    }
+
+    @Test
+    void updateVerified_shouldNotCallFindAll() {
+        UUID id = UUID.randomUUID();
+        when(userPersistence.updateVerified(id, true)).thenReturn(buildDetail(RoleType.BUSINESS));
+
+        userService.updateVerified(id, true);
+
+        verify(userPersistence, never()).findAll(any(), any());
+    }
+
     // --------------------------------------------------------------------------
     //  helpers
     // --------------------------------------------------------------------------
