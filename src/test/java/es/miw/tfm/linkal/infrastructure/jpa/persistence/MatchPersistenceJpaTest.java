@@ -590,6 +590,94 @@ public class MatchPersistenceJpaTest {
         assertEquals("Campaña Verano 2026", result.get(0).getCampaignTitle());
     }
 
+    // -------------------------------------------------------------------------
+    //  findCompletedByCampaign
+    // -------------------------------------------------------------------------
+
+    @Test
+    void findCompletedByCampaign_shouldThrowNotFoundWhenBusinessNotFound() {
+        when(businessRepository.findByEmail("unknown@test.com")).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class,
+                () -> matchPersistenceJpa.findCompletedByCampaign(UUID.randomUUID(), "unknown@test.com"));
+    }
+
+    @Test
+    void findCompletedByCampaign_shouldThrowNotFoundWhenCampaignNotFound() {
+        BusinessEntity business = buildBusinessEntity();
+        UUID campaignId = UUID.randomUUID();
+        when(businessRepository.findByEmail("business@test.com")).thenReturn(Optional.of(business));
+        when(campaignRepository.findById(campaignId)).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class,
+                () -> matchPersistenceJpa.findCompletedByCampaign(campaignId, "business@test.com"));
+    }
+
+    @Test
+    void findCompletedByCampaign_shouldThrowForbiddenWhenBusinessNotOwner() {
+        BusinessEntity owner   = buildBusinessEntity();
+        BusinessEntity other   = buildBusinessEntity();
+        CampaignEntity campaign = buildCampaignEntityWithBusiness(owner);
+
+        when(businessRepository.findByEmail("other@test.com")).thenReturn(Optional.of(other));
+        when(campaignRepository.findById(campaign.getId())).thenReturn(Optional.of(campaign));
+
+        assertThrows(ForbiddenException.class,
+                () -> matchPersistenceJpa.findCompletedByCampaign(campaign.getId(), "other@test.com"));
+    }
+
+    @Test
+    void findCompletedByCampaign_shouldReturnEmptyListWhenNoMatches() {
+        BusinessEntity business = buildBusinessEntity();
+        CampaignEntity campaign = buildCampaignEntityWithBusiness(business);
+
+        when(businessRepository.findByEmail("business@test.com")).thenReturn(Optional.of(business));
+        when(campaignRepository.findById(campaign.getId())).thenReturn(Optional.of(campaign));
+        when(matchRepository.findByCampaign_IdAndStatus(campaign.getId(), MatchStatus.COMPLETED))
+                .thenReturn(List.of());
+
+        List<Match> result = matchPersistenceJpa.findCompletedByCampaign(campaign.getId(), "business@test.com");
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findCompletedByCampaign_shouldReturnCompletedMatchesWithInfluencerData() {
+        BusinessEntity   business   = buildBusinessEntity();
+        InfluencerEntity influencer = buildInfluencerEntity();
+        influencer.setName("Influencer Test");
+        influencer.setArtisticName("The Influencer");
+        CampaignEntity campaign = buildCampaignEntityWithBusiness(business);
+        MatchEntity    match    = buildPendingMatchByInfluencer(campaign, influencer);
+
+        when(businessRepository.findByEmail("business@test.com")).thenReturn(Optional.of(business));
+        when(campaignRepository.findById(campaign.getId())).thenReturn(Optional.of(campaign));
+        when(matchRepository.findByCampaign_IdAndStatus(campaign.getId(), MatchStatus.COMPLETED))
+                .thenReturn(List.of(match));
+
+        List<Match> result = matchPersistenceJpa.findCompletedByCampaign(campaign.getId(), "business@test.com");
+
+        assertEquals(1, result.size());
+        assertEquals("Influencer Test", result.get(0).getInfluencerName());
+        assertEquals("The Influencer", result.get(0).getInfluencerArtisticName());
+    }
+
+    @Test
+    void findCompletedByCampaign_shouldOnlyQueryCompletedStatus() {
+        BusinessEntity business = buildBusinessEntity();
+        CampaignEntity campaign = buildCampaignEntityWithBusiness(business);
+
+        when(businessRepository.findByEmail("business@test.com")).thenReturn(Optional.of(business));
+        when(campaignRepository.findById(campaign.getId())).thenReturn(Optional.of(campaign));
+        when(matchRepository.findByCampaign_IdAndStatus(campaign.getId(), MatchStatus.COMPLETED))
+                .thenReturn(List.of());
+
+        matchPersistenceJpa.findCompletedByCampaign(campaign.getId(), "business@test.com");
+
+        verify(matchRepository).findByCampaign_IdAndStatus(campaign.getId(), MatchStatus.COMPLETED);
+        verify(matchRepository, never()).findByCampaign_IdAndStatus(campaign.getId(), MatchStatus.PENDING);
+    }
+
     // ------------------------------------------------------------------------
     //  helpers
     // -------------------------------------------------------------------------
