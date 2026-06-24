@@ -8,4 +8,5 @@ public interface EvaluationPersistence {
     Double averageScoreByInfluencerId(UUID influencerId);
     Double averageScoreByBusinessId(UUID businessId);
     Evaluation create(Evaluation evaluation, UUID matchId, String businessEmail);
+    Evaluation createByInfluencer(Evaluation evaluation, UUID matchId, String influencerEmail);
 }

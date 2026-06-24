@@ -42,13 +42,16 @@ public class Match {
     private String businessAddress;
     private Boolean businessVerified;
     // Campos enriquecidos — influencer
-    private String       influencerName;
-    private String       influencerArtisticName;
-    private String       influencerDescription;
-    private String       influencerEmail;
-    private String       influencerInstagram;
-    private String       influencerTiktok;
-    private String       influencerYoutube;
-    private Boolean      influencerVerified;
+    private String influencerName;
+    private String influencerArtisticName;
+    private String influencerDescription;
+    private String influencerEmail;
+    private String influencerInstagram;
+    private String influencerTiktok;
+    private String influencerYoutube;
+    private Boolean influencerVerified;
     private List<String> influencerInterests;
+
+    private Boolean alreadyRatedBusiness;
+
 }

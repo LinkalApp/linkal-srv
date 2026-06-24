@@ -223,6 +223,11 @@ public class MatchPersistenceJpa implements MatchPersistence {
                             match.setBusinessProvince(b.getProvince());
                             match.setBusinessAddress(b.getAddress());
                             match.setBusinessVerified(b.getVerified());
+
+                            UUID businessId = b.getId();
+                            boolean rated = m.getEvaluations().stream()
+                                    .anyMatch(e -> businessId.equals(e.getIdUserValued()));
+                            match.setAlreadyRatedBusiness(rated);
                         }
                     }
                     return match;

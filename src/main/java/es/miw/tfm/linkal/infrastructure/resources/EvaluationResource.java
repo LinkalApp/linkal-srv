@@ -28,4 +28,13 @@ public class EvaluationResource {
         return ResponseEntity.status(201)
                 .body(evaluationService.create(evaluation, matchId, authentication.getName()));
     }
+
+    @PostMapping("/matches/{matchId}/influencer")
+    @PreAuthorize("hasRole('INFLUENCER')")
+    public ResponseEntity<Evaluation> createByInfluencer(@PathVariable UUID matchId,
+                                                         @RequestBody Evaluation evaluation,
+                                                         Authentication authentication) {
+        return ResponseEntity.status(201)
+                .body(evaluationService.createByInfluencer(evaluation, matchId, authentication.getName()));
+    }
 }

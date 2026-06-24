@@ -16,4 +16,8 @@ public class EvaluationService {
     public Evaluation create(Evaluation evaluation, UUID matchId, String businessEmail) {
         return evaluationPersistence.create(evaluation, matchId, businessEmail);
     }
+
+    public Evaluation createByInfluencer(Evaluation evaluation, UUID matchId, String influencerEmail) {
+        return evaluationPersistence.createByInfluencer(evaluation, matchId, influencerEmail);
+    }
 }
