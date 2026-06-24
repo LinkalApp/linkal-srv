@@ -21,4 +21,8 @@ public class UserService {
     public AdminUserDetail findById(UUID id) {
         return userPersistence.findById(id);
     }
+
+    public AdminUserDetail updateVerified(UUID id, Boolean verified) {
+        return userPersistence.updateVerified(id, verified);
+    }
 }
