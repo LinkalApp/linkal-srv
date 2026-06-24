@@ -11,6 +11,7 @@ import es.miw.tfm.linkal.infrastructure.jpa.entities.EvaluationEntity;
 import es.miw.tfm.linkal.infrastructure.jpa.entities.MatchEntity;
 import es.miw.tfm.linkal.infrastructure.jpa.repositories.BusinessRepository;
 import es.miw.tfm.linkal.infrastructure.jpa.repositories.EvaluationRepository;
+import es.miw.tfm.linkal.infrastructure.jpa.repositories.InfluencerRepository;
 import es.miw.tfm.linkal.infrastructure.jpa.repositories.MatchRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -25,6 +26,7 @@ public class EvaluationPersistenceJpa implements EvaluationPersistence {
     private final EvaluationRepository evaluationRepository;
     private final MatchRepository matchRepository;
     private final BusinessRepository businessRepository;
+    private final InfluencerRepository influencerRepository;
 
     @Override
     public Double averageScoreByInfluencerId(UUID influencerId) {
@@ -63,6 +65,42 @@ public class EvaluationPersistenceJpa implements EvaluationPersistence {
         EvaluationEntity entity = EvaluationEntity.builder()
                 .score(evaluation.getScore())
                 .idUserValued(match.getInfluencer().getId())
+                .match(match)
+                .build();
+
+        Evaluation saved = evaluationRepository.save(entity).toEvaluation();
+        return saved;
+    }
+
+    @Override
+    @Transactional
+    public Evaluation createByInfluencer(Evaluation evaluation, UUID matchId, String influencerEmail) {
+        influencerRepository.findByEmail(influencerEmail)
+                .orElseThrow(() -> new NotFoundException("Influencer not found: " + influencerEmail));
+
+        MatchEntity match = matchRepository.findById(matchId)
+                .orElseThrow(() -> new NotFoundException("Match not found: " + matchId));
+
+        if (match.getInfluencer() == null ||
+                !match.getInfluencer().getEmail().equals(influencerEmail)) {
+            throw new ForbiddenException("No eres el influencer de este match");
+        }
+
+        CampaignStatus campaignStatus = match.getCampaign().getStatus();
+        if (campaignStatus != CampaignStatus.CLOSED) {
+            throw new ConflictException("La campaña debe estar CLOSED para poder valorar");
+        }
+
+        UUID businessId = match.getCampaign().getBusiness().getId();
+        boolean alreadyRated = match.getEvaluations().stream()
+                .anyMatch(e -> businessId.equals(e.getIdUserValued()));
+        if (alreadyRated) {
+            throw new ConflictException("Ya has valorado al comercio de este match");
+        }
+
+        EvaluationEntity entity = EvaluationEntity.builder()
+                .score(evaluation.getScore())
+                .idUserValued(businessId)
                 .match(match)
                 .build();
 

@@ -8,6 +8,7 @@ import es.miw.tfm.linkal.domain.model.enums.CampaignStatus;
 import es.miw.tfm.linkal.infrastructure.jpa.entities.*;
 import es.miw.tfm.linkal.infrastructure.jpa.repositories.BusinessRepository;
 import es.miw.tfm.linkal.infrastructure.jpa.repositories.EvaluationRepository;
+import es.miw.tfm.linkal.infrastructure.jpa.repositories.InfluencerRepository;
 import es.miw.tfm.linkal.infrastructure.jpa.repositories.MatchRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,6 +36,8 @@ public class EvaluationPersistenceJpaTest {
     private MatchRepository matchRepository;
     @Mock
     private BusinessRepository businessRepository;
+    @Mock
+    private InfluencerRepository influencerRepository;
 
     @InjectMocks
     private EvaluationPersistenceJpa evaluationPersistenceJpa;
@@ -257,6 +260,128 @@ public class EvaluationPersistenceJpaTest {
         evaluationPersistenceJpa.create(Evaluation.builder().score(3).build(), match.getId(), "business@test.com");
 
         verify(evaluationRepository).save(argThat(e -> influencer.getId().equals(e.getIdUserValued())));
+    }
+
+    // --------------------------------------------------------------------------
+    //  createByInfluencer
+    // ---------------------------------------------------------------------------
+
+    @Test
+    void createByInfluencer_shouldThrowNotFoundWhenInfluencerNotFound() {
+        when(influencerRepository.findByEmail("unknown@test.com")).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class,
+                () -> evaluationPersistenceJpa.createByInfluencer(buildEvaluation(), UUID.randomUUID(), "unknown@test.com"));
+        verifyNoInteractions(evaluationRepository);
+    }
+
+    @Test
+    void createByInfluencer_shouldThrowNotFoundWhenMatchNotFound() {
+        InfluencerEntity influencer = buildInfluencerEntity();
+        when(influencerRepository.findByEmail("influencer@test.com")).thenReturn(Optional.of(influencer));
+        when(matchRepository.findById(any())).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class,
+                () -> evaluationPersistenceJpa.createByInfluencer(buildEvaluation(), UUID.randomUUID(), "influencer@test.com"));
+        verifyNoInteractions(evaluationRepository);
+    }
+
+    @Test
+    void createByInfluencer_shouldThrowForbiddenWhenInfluencerDoesNotOwnMatch() {
+        InfluencerEntity influencer = buildInfluencerEntity();
+        InfluencerEntity otherInfluencer = buildInfluencerEntity();
+        otherInfluencer.setEmail("other@influencer.com");
+        BusinessEntity business = buildBusinessEntity("business@test.com");
+        MatchEntity match = buildMatchEntity(business, CampaignStatus.CLOSED);
+        match.setInfluencer(otherInfluencer);
+
+        when(influencerRepository.findByEmail("influencer@test.com")).thenReturn(Optional.of(influencer));
+        when(matchRepository.findById(match.getId())).thenReturn(Optional.of(match));
+
+        assertThrows(ForbiddenException.class,
+                () -> evaluationPersistenceJpa.createByInfluencer(buildEvaluation(), match.getId(), "influencer@test.com"));
+        verifyNoInteractions(evaluationRepository);
+    }
+
+    @Test
+    void createByInfluencer_shouldThrowConflictWhenCampaignNotClosed() {
+        InfluencerEntity influencer = buildInfluencerEntity();
+        BusinessEntity business = buildBusinessEntity("business@test.com");
+        MatchEntity match = buildMatchEntity(business, CampaignStatus.IN_PROGRESS);
+        match.setInfluencer(influencer);
+
+        when(influencerRepository.findByEmail("influencer@test.com")).thenReturn(Optional.of(influencer));
+        when(matchRepository.findById(match.getId())).thenReturn(Optional.of(match));
+
+        assertThrows(ConflictException.class,
+                () -> evaluationPersistenceJpa.createByInfluencer(buildEvaluation(), match.getId(), "influencer@test.com"));
+        verifyNoInteractions(evaluationRepository);
+    }
+
+    @Test
+    void createByInfluencer_shouldThrowConflictWhenAlreadyRatedBusiness() {
+        InfluencerEntity influencer = buildInfluencerEntity();
+        BusinessEntity business = buildBusinessEntity("business@test.com");
+        MatchEntity match = buildMatchEntity(business, CampaignStatus.CLOSED);
+        match.setInfluencer(influencer);
+
+        UUID businessId = match.getCampaign().getBusiness().getId();
+        EvaluationEntity existing = EvaluationEntity.builder()
+                .id(UUID.randomUUID()).score(4).idUserValued(businessId).match(match).build();
+        match.setEvaluations(new ArrayList<>(List.of(existing)));
+
+        when(influencerRepository.findByEmail("influencer@test.com")).thenReturn(Optional.of(influencer));
+        when(matchRepository.findById(match.getId())).thenReturn(Optional.of(match));
+
+        assertThrows(ConflictException.class,
+                () -> evaluationPersistenceJpa.createByInfluencer(buildEvaluation(), match.getId(), "influencer@test.com"));
+        verifyNoInteractions(evaluationRepository);
+    }
+
+    @Test
+    void createByInfluencer_shouldSaveAndReturnEvaluationOnSuccess() {
+        InfluencerEntity influencer = buildInfluencerEntity();
+        BusinessEntity business = buildBusinessEntity("business@test.com");
+        MatchEntity match = buildMatchEntity(business, CampaignStatus.CLOSED);
+        match.setInfluencer(influencer);
+        match.setEvaluations(new ArrayList<>());
+
+        UUID savedId = UUID.randomUUID();
+        when(influencerRepository.findByEmail("influencer@test.com")).thenReturn(Optional.of(influencer));
+        when(matchRepository.findById(match.getId())).thenReturn(Optional.of(match));
+        when(evaluationRepository.save(any(EvaluationEntity.class))).thenAnswer(inv -> {
+            EvaluationEntity entity = inv.getArgument(0);
+            entity.setId(savedId);
+            return entity;
+        });
+
+        Evaluation result = evaluationPersistenceJpa.createByInfluencer(buildEvaluation(), match.getId(), "influencer@test.com");
+
+        assertNotNull(result);
+        assertEquals(savedId, result.getId());
+        assertEquals(5, result.getScore());
+        assertEquals(match.getId(), result.getMatchId());
+    }
+
+    @Test
+    void createByInfluencer_shouldSetValuedUserIdToBusinessId() {
+        InfluencerEntity influencer = buildInfluencerEntity();
+        BusinessEntity business = buildBusinessEntity("business@test.com");
+        MatchEntity match = buildMatchEntity(business, CampaignStatus.CLOSED);
+        match.setInfluencer(influencer);
+        match.setEvaluations(new ArrayList<>());
+
+        UUID businessId = match.getCampaign().getBusiness().getId();
+        EvaluationEntity saved = EvaluationEntity.builder()
+                .id(UUID.randomUUID()).score(5).idUserValued(businessId).match(match).build();
+
+        when(influencerRepository.findByEmail("influencer@test.com")).thenReturn(Optional.of(influencer));
+        when(matchRepository.findById(match.getId())).thenReturn(Optional.of(match));
+        when(evaluationRepository.save(any())).thenReturn(saved);
+
+        evaluationPersistenceJpa.createByInfluencer(buildEvaluation(), match.getId(), "influencer@test.com");
+
+        verify(evaluationRepository).save(argThat(e -> businessId.equals(e.getIdUserValued())));
     }
 
     // ------------------------------------------------------------------------
