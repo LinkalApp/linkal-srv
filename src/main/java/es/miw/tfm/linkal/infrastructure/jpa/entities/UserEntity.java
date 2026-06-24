@@ -20,6 +20,7 @@ import java.util.UUID;
 @Table(name = "users")
 @Inheritance(strategy = InheritanceType.JOINED)
 @DiscriminatorColumn(name = "role_type", discriminatorType = DiscriminatorType.STRING)
+@DiscriminatorValue("ADMIN")
 public class UserEntity {
 
     @Id
