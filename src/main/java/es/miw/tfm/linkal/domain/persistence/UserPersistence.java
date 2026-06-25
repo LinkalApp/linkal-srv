@@ -12,4 +12,5 @@ public interface UserPersistence {
     List<AdminUserDetail> findAll(RoleType role, Boolean verified);
     AdminUserDetail findById(UUID id);
     AdminUserDetail updateVerified(UUID id, Boolean verified);
+    void deleteUser(UUID id, String adminEmail);
 }

@@ -6,6 +6,7 @@ import es.miw.tfm.linkal.domain.services.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -36,5 +37,13 @@ public class AdminResource {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AdminUserDetail> updateVerified(@PathVariable UUID id) {
         return ResponseEntity.ok(userService.updateVerified(id, true));
+    }
+
+    @DeleteMapping("/users/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deleteUser(@PathVariable UUID id,
+                                           Authentication authentication) {
+        userService.deleteUser(id, authentication.getName());
+        return ResponseEntity.noContent().build();
     }
 }

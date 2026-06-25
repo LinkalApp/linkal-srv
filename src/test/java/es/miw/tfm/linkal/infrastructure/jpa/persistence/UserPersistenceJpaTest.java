@@ -245,6 +245,55 @@ public class UserPersistenceJpaTest {
         assertEquals(id, result.getId());
     }
 
+    // -------------------------------------------------------------------------
+    //  deleteUser
+    // --------------------------------------------------------------------------
+
+    @Test
+    void deleteUser_callsRepositoryDelete() {
+        UUID id = UUID.randomUUID();
+        InfluencerEntity entity = buildInfluencerEntity();
+        entity.setId(id);
+        when(userRepository.findById(id)).thenReturn(Optional.of(entity));
+
+        userPersistenceJpa.deleteUser(id, "admin@linkal.es");
+
+        verify(userRepository).delete(entity);
+    }
+
+    @Test
+    void deleteUser_throwsNotFoundWhenUserMissing() {
+        UUID id = UUID.randomUUID();
+        when(userRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class,
+                () -> userPersistenceJpa.deleteUser(id, "admin@linkal.es"));
+    }
+
+    @Test
+    void deleteUser_doesNotSaveAfterDelete() {
+        UUID id = UUID.randomUUID();
+        InfluencerEntity entity = buildInfluencerEntity();
+        entity.setId(id);
+        when(userRepository.findById(id)).thenReturn(Optional.of(entity));
+
+        userPersistenceJpa.deleteUser(id, "admin@linkal.es");
+
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void deleteUser_worksForBusinessEntity() {
+        UUID id = UUID.randomUUID();
+        BusinessEntity entity = buildBusinessEntity();
+        entity.setId(id);
+        when(userRepository.findById(id)).thenReturn(Optional.of(entity));
+
+        userPersistenceJpa.deleteUser(id, "admin@linkal.es");
+
+        verify(userRepository).delete(entity);
+    }
+
     // ---------------------------------------------------------------------------
     //  helpers
     // ---------------------------------------------------------------------------
