@@ -162,6 +162,38 @@ public class UserServiceTest {
         verify(userPersistence, never()).findAll(any(), any());
     }
 
+    // -------------------------------------------------------------------------
+    //  deleteUser
+    // -------------------------------------------------------------------------
+
+    @Test
+    void deleteUser_shouldDelegateToPersistence() {
+        UUID id = UUID.randomUUID();
+        String adminEmail = "admin@linkal.es";
+
+        userService.deleteUser(id, adminEmail);
+
+        verify(userPersistence).deleteUser(id, adminEmail);
+    }
+
+    @Test
+    void deleteUser_shouldNotCallFindAll() {
+        UUID id = UUID.randomUUID();
+
+        userService.deleteUser(id, "admin@linkal.es");
+
+        verify(userPersistence, never()).findAll(any(), any());
+    }
+
+    @Test
+    void deleteUser_shouldNotCallFindById() {
+        UUID id = UUID.randomUUID();
+
+        userService.deleteUser(id, "admin@linkal.es");
+
+        verify(userPersistence, never()).findById(any());
+    }
+
     // --------------------------------------------------------------------------
     //  helpers
     // --------------------------------------------------------------------------

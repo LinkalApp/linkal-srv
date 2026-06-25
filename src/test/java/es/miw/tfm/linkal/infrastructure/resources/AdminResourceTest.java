@@ -242,6 +242,57 @@ public class AdminResourceTest {
     }
 
     // -------------------------------------------------------------------------
+    //  DELETE /api/admin/users/{id}
+    // -------------------------------------------------------------------------
+
+    @Test
+    @WithMockUser(username = "admin@linkal.es", roles = "ADMIN")
+    void deleteUser_shouldReturn204WhenAdmin() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .delete("/api/admin/users/{id}", id))
+                .andExpect(status().isNoContent());
+
+        org.mockito.Mockito.verify(userService).deleteUser(id, "admin@linkal.es");
+    }
+
+    @Test
+    void deleteUser_shouldReturn401WhenNotAuthenticated() throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .delete("/api/admin/users/{id}", UUID.randomUUID()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(username = "influencer@test.com", roles = "INFLUENCER")
+    void deleteUser_shouldReturn403WhenNotAdmin() throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .delete("/api/admin/users/{id}", UUID.randomUUID()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "admin@linkal.es", roles = "ADMIN")
+    void deleteUser_shouldReturn404WhenUserNotFound() throws Exception {
+        UUID id = UUID.randomUUID();
+        org.mockito.Mockito.doThrow(new es.miw.tfm.linkal.domain.exceptions.NotFoundException("User not found: " + id))
+                .when(userService).deleteUser(id, "admin@linkal.es");
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .delete("/api/admin/users/{id}", id))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(username = "business@test.com", roles = "BUSINESS")
+    void deleteUser_shouldReturn403WhenBusiness() throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .delete("/api/admin/users/{id}", UUID.randomUUID()))
+                .andExpect(status().isForbidden());
+    }
+
+    // -------------------------------------------------------------------------
     //  helpers
     // -------------------------------------------------------------------------
 
