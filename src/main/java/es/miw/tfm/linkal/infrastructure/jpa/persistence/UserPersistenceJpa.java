@@ -11,6 +11,7 @@ import es.miw.tfm.linkal.infrastructure.jpa.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -44,6 +45,13 @@ public class UserPersistenceJpa implements UserPersistence {
         entity.setVerified(verified);
         UserEntity saved = userRepository.save(entity);
         return toAdminUserDetail(saved);
+    }
+
+    @Override
+    public void deleteUser(UUID id, String adminEmail) {
+        UserEntity entity = userRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("User not found: " + id));
+        userRepository.delete(entity);
     }
 
     // Helpers --------------------------------------------------------------------------

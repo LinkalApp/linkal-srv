@@ -25,4 +25,8 @@ public class UserService {
     public AdminUserDetail updateVerified(UUID id, Boolean verified) {
         return userPersistence.updateVerified(id, verified);
     }
+
+    public void deleteUser(UUID id, String adminEmail) {
+        userPersistence.deleteUser(id, adminEmail);
+    }
 }
