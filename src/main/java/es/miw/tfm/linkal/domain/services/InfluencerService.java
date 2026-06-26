@@ -29,7 +29,10 @@ public class InfluencerService {
     }
 
     public List<Influencer> readAll() {
-        return influencerPersistence.readAll();
+        List<Influencer> influencers = influencerPersistence.readAll();
+        influencers.forEach(influencer ->
+                influencer.setAverageRating(evaluationPersistence.averageScoreByInfluencerId(influencer.getId())));
+        return influencers;
     }
 
     public List<Influencer> findByInterests(List<String> interests) {
