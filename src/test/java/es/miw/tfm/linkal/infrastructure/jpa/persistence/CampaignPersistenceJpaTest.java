@@ -10,6 +10,7 @@ import es.miw.tfm.linkal.infrastructure.jpa.entities.CampaignEntity;
 import es.miw.tfm.linkal.infrastructure.jpa.entities.MatchEntity;
 import es.miw.tfm.linkal.infrastructure.jpa.repositories.BusinessRepository;
 import es.miw.tfm.linkal.infrastructure.jpa.repositories.CampaignRepository;
+import es.miw.tfm.linkal.infrastructure.jpa.repositories.EvaluationRepository;
 import es.miw.tfm.linkal.infrastructure.jpa.repositories.MatchRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,6 +37,8 @@ public class CampaignPersistenceJpaTest {
     private MatchRepository matchRepository;
     @Mock
     private BusinessRepository businessRepository;
+    @Mock
+    private EvaluationRepository evaluationRepository;
 
     @InjectMocks
     private CampaignPersistenceJpa campaignPersistenceJpa;
