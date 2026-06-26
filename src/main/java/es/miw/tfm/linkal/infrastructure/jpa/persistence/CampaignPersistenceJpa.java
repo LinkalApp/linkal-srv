@@ -13,6 +13,7 @@ import es.miw.tfm.linkal.infrastructure.jpa.entities.CampaignEntity;
 import es.miw.tfm.linkal.infrastructure.jpa.entities.MatchEntity;
 import es.miw.tfm.linkal.infrastructure.jpa.repositories.BusinessRepository;
 import es.miw.tfm.linkal.infrastructure.jpa.repositories.CampaignRepository;
+import es.miw.tfm.linkal.infrastructure.jpa.repositories.EvaluationRepository;
 import es.miw.tfm.linkal.infrastructure.jpa.repositories.MatchRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -28,6 +29,7 @@ public class CampaignPersistenceJpa implements CampaignPersistence {
     private final CampaignRepository campaignRepository;
     private final MatchRepository matchRepository;
     private final BusinessRepository businessRepository;
+    private final EvaluationRepository evaluationRepository;
 
     @Override
     @Transactional
@@ -115,6 +117,7 @@ public class CampaignPersistenceJpa implements CampaignPersistence {
                         campaign.setBusinessProvince(business.getProvince());
                         campaign.setBusinessAddress(business.getAddress());
                         campaign.setBusinessVerified(business.getVerified());
+                        campaign.setBusinessAverageRating(evaluationRepository.findAverageScoreByValuedUserId(business.getId()));
                     }
                     return campaign;
                 })

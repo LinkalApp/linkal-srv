@@ -34,4 +34,5 @@ public class Campaign {
     private String businessProvince;
     private String businessAddress;
     private Boolean businessVerified;
+    private Double businessAverageRating;
 }
